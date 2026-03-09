@@ -25,7 +25,7 @@ PLUGIN_DATA_CALENDAR_SERVICE = "calendar_service"
 SYSTEM_PROMPT_CALENDAR = """You have access to Google Calendar tools:
 - list_calendars: List all available Google calendars (name, ID)
 - list_events: List events for today or a date range (date_str, days)
-- create_event: Create a timed event (summary, start, end ISO datetimes)
+- create_event: Create a timed event (summary, start, end, add_google_meet for Meet)
 - create_all_day_event: Create an all-day event (summary, date_str YYYY-MM-DD)
 - delete_event: Delete an event by Google Calendar event ID
 - import_ics_event: Import ICS calendar data to Google Calendar
@@ -38,10 +38,18 @@ When the user wants to import a meeting invite from email to their calendar:
 1. Use detect_invite (IMAP plugin) to get ICS data from the email
 2. Use import_ics_event (this plugin) with the ICS data to add it to Google Calendar
 
-## Creating events
+## Creating events — IMPORTANT
 
-When creating events, parse flexible date/time formats. Always confirm the \
-event details with the user before creating.
+When the user asks to create or add an event/date, follow this workflow strictly:
+
+### Step 1: Show preview — DO NOT CREATE YET
+- Parse the date/time and summarize what will be created
+- Show: summary, date, time range (or "all-day")
+- Ask: "Shall I add this to your calendar?"
+
+### Step 2: Create — ONLY when the user explicitly confirms
+- "yes" / "ja" / "do it" / "add it" → call create_event or create_all_day_event
+- NEVER call create_event or create_all_day_event without explicit user confirmation
 
 ## Deleting events
 

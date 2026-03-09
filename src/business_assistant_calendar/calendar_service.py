@@ -78,22 +78,25 @@ class CalendarService:
         start: str,
         end: str,
         calendar_id: str | None = None,
+        add_google_meet: bool = False,
     ) -> str:
         """Create a timed event. Parses flexible datetime strings."""
         try:
             start_dt = dateutil_parser.parse(start)
             end_dt = dateutil_parser.parse(end)
 
-            event_id = self._client.create_event(
-                summary, start_dt, end_dt, calendar_id
+            event_id, meet_link = self._client.create_event(
+                summary, start_dt, end_dt, calendar_id, add_google_meet
             )
             if event_id:
-                return (
-                    f"Event created: '{summary}'\n"
-                    f"  From: {start_dt.strftime('%Y-%m-%d %H:%M')}\n"
-                    f"  To:   {end_dt.strftime('%Y-%m-%d %H:%M')}\n"
-                    f"  Event ID: {event_id}"
-                )
+                lines = [
+                    f"Event created: '{summary}'",
+                    f"  From: {start_dt.strftime('%Y-%m-%d %H:%M')}",
+                    f"  To:   {end_dt.strftime('%Y-%m-%d %H:%M')}",
+                ]
+                if meet_link:
+                    lines.append(f"  Google Meet: {meet_link}")
+                return "\n".join(lines)
             return "Failed to create event."
         except Exception as e:
             return f"Error creating event: {e}"
@@ -113,8 +116,7 @@ class CalendarService:
             if event_id:
                 return (
                     f"All-day event created: '{summary}'\n"
-                    f"  Date: {event_date.isoformat()}\n"
-                    f"  Event ID: {event_id}"
+                    f"  Date: {event_date.isoformat()}"
                 )
             return "Failed to create all-day event."
         except Exception as e:

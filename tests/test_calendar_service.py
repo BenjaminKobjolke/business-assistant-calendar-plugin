@@ -77,7 +77,7 @@ class TestCalendarService:
 
     def test_create_event(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
-        mock_client.create_event.return_value = "evt_new123"
+        mock_client.create_event.return_value = ("evt_new123", "")
         service = self._make_service(calendar_settings, mock_client)
 
         result = service.create_event(
@@ -88,11 +88,32 @@ class TestCalendarService:
 
         assert "Event created" in result
         assert "Sprint Planning" in result
-        assert "evt_new123" in result
+        assert "Google Meet" not in result
+
+    def test_create_event_with_google_meet(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.create_event.return_value = (
+            "evt_meet",
+            "https://meet.google.com/abc-defg-hij",
+        )
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.create_event(
+            "Team Meeting",
+            "2026-03-15T11:00:00",
+            "2026-03-15T12:00:00",
+            add_google_meet=True,
+        )
+
+        assert "Event created" in result
+        assert "Google Meet" in result
+        assert "https://meet.google.com/abc-defg-hij" in result
 
     def test_create_event_failure(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
-        mock_client.create_event.return_value = None
+        mock_client.create_event.return_value = (None, "")
         service = self._make_service(calendar_settings, mock_client)
 
         result = service.create_event(
@@ -112,7 +133,6 @@ class TestCalendarService:
 
         assert "All-day event created" in result
         assert "Holiday" in result
-        assert "evt_allday" in result
 
     def test_delete_event_success(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
