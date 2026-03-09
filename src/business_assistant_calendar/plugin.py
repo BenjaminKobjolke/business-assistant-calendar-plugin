@@ -43,9 +43,14 @@ def _create_event(
     start: str,
     end: str,
     calendar_id: str | None = None,
+    add_google_meet: bool = False,
 ) -> str:
-    """Create a timed event. Provide summary, start and end as ISO datetime strings."""
-    return _get_service(ctx).create_event(summary, start, end, calendar_id)
+    """Create a timed event. Provide summary, start and end as ISO datetime strings.
+    Set add_google_meet=True to attach a Google Meet video conference link.
+    """
+    return _get_service(ctx).create_event(
+        summary, start, end, calendar_id, add_google_meet
+    )
 
 
 def _create_all_day_event(

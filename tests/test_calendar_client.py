@@ -61,9 +61,36 @@ class TestGoogleCalendarClient:
 
         start_dt = datetime(2026, 3, 15, 10, 0)
         end_dt = datetime(2026, 3, 15, 11, 0)
-        result = client.create_event("Test Meeting", start_dt, end_dt)
+        event_id, meet_link = client.create_event("Test Meeting", start_dt, end_dt)
 
-        assert result == "evt_new"
+        assert event_id == "evt_new"
+        assert meet_link == ""
+
+    def test_create_event_with_google_meet(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().insert().execute.return_value = {
+            "id": "evt_meet",
+            "conferenceData": {
+                "entryPoints": [
+                    {
+                        "entryPointType": "video",
+                        "uri": "https://meet.google.com/abc-defg-hij",
+                    }
+                ]
+            },
+        }
+        client = self._make_client(calendar_settings, mock_service)
+
+        start_dt = datetime(2026, 3, 15, 10, 0)
+        end_dt = datetime(2026, 3, 15, 11, 0)
+        event_id, meet_link = client.create_event(
+            "Team Meeting", start_dt, end_dt, add_google_meet=True
+        )
+
+        assert event_id == "evt_meet"
+        assert meet_link == "https://meet.google.com/abc-defg-hij"
 
     def test_create_event_failure(self, calendar_settings: CalendarSettings) -> None:
         mock_service = MagicMock()
@@ -72,9 +99,10 @@ class TestGoogleCalendarClient:
 
         start_dt = datetime(2026, 3, 15, 10, 0)
         end_dt = datetime(2026, 3, 15, 11, 0)
-        result = client.create_event("Test Meeting", start_dt, end_dt)
+        event_id, meet_link = client.create_event("Test Meeting", start_dt, end_dt)
 
-        assert result is None
+        assert event_id is None
+        assert meet_link == ""
 
     def test_create_all_day_event(self, calendar_settings: CalendarSettings) -> None:
         mock_service = MagicMock()

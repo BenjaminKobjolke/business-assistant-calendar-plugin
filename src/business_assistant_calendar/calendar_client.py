@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import ClassVar
@@ -121,26 +122,47 @@ class GoogleCalendarClient:
         start_dt: datetime,
         end_dt: datetime,
         calendar_id: str | None = None,
-    ) -> str | None:
-        """Create a calendar event. Returns Google Calendar event ID or None."""
+        add_google_meet: bool = False,
+    ) -> tuple[str | None, str]:
+        """Create a calendar event. Returns (event_id, meet_link)."""
         try:
             service = self._get_service()
             cal_id = calendar_id or self._settings.calendar_id
             timezone = self._settings.timezone
-            event_body = {
+            event_body: dict = {
                 "summary": summary,
                 "start": {"dateTime": start_dt.isoformat(), "timeZone": timezone},
                 "end": {"dateTime": end_dt.isoformat(), "timeZone": timezone},
             }
+
+            conference_version = 0
+            if add_google_meet:
+                event_body["conferenceData"] = {
+                    "createRequest": {"requestId": f"meet-{uuid.uuid4().hex}"}
+                }
+                conference_version = 1
+
             result = service.events().insert(
-                calendarId=cal_id, body=event_body, sendUpdates="none"
+                calendarId=cal_id,
+                body=event_body,
+                sendUpdates="none",
+                conferenceDataVersion=conference_version,
             ).execute()
             event_id = result.get("id")
+            meet_link = ""
+            if add_google_meet:
+                entry_points = (
+                    result.get("conferenceData", {}).get("entryPoints", [])
+                )
+                for ep in entry_points:
+                    if ep.get("entryPointType") == "video":
+                        meet_link = ep.get("uri", "")
+                        break
             logger.info("Event created in Google Calendar, id=%s", event_id)
-            return event_id
+            return event_id, meet_link
         except Exception as e:
             logger.error("Failed to create event in Google Calendar: %s", e)
-            return None
+            return None, ""
 
     def create_all_day_event(
         self,

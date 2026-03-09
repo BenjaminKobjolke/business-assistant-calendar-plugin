@@ -333,6 +333,7 @@ version = "0.1.0"
 source = { editable = "../business-assistant-v2" }
 dependencies = [
     { name = "bot-commander", extra = ["xmpp"] },
+    { name = "business-assistant-calendar-plugin" },
     { name = "business-assistant-imap-plugin" },
     { name = "pydantic-ai" },
     { name = "python-dotenv" },
@@ -341,6 +342,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "bot-commander", extras = ["xmpp"], editable = "../bot-commander" },
+    { name = "business-assistant-calendar-plugin", editable = "." },
     { name = "business-assistant-imap-plugin", editable = "../business-assistant-imap-plugin" },
     { name = "pydantic-ai" },
     { name = "python-dotenv" },
