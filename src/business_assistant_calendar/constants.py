@@ -18,8 +18,10 @@ DEFAULT_OAUTH_PORT = 51032
 PLUGIN_NAME = "calendar"
 PLUGIN_DESCRIPTION = "Google Calendar operations"
 
-# Plugin data key
+# Plugin data keys
 PLUGIN_DATA_CALENDAR_SERVICE = "calendar_service"
+PLUGIN_DATA_CALENDAR_SETTINGS = "calendar_settings"
+PLUGIN_DATA_CALENDAR_AUTH_STATE = "calendar_auth_state"
 
 # System prompt extra
 SYSTEM_PROMPT_CALENDAR = """You have access to Google Calendar tools:
@@ -68,3 +70,18 @@ When the user asks to create or add an event/date, follow this workflow strictly
 
 When deleting events, first use list_events or search_events to find the event \
 and confirm the correct event with the user before deleting."""
+
+SYSTEM_PROMPT_CALENDAR_SETUP = """Google Calendar integration is available \
+but not yet authenticated.
+
+You have two setup tools:
+- calendar_start_auth: Starts Google OAuth and returns the authorization URL.
+- calendar_complete_auth: Completes authorization after the user approves in \
+their browser.
+
+When the user asks about calendar, events, or scheduling:
+1. Tell them Google Calendar is available but needs a one-time authorization.
+2. Offer to start — call calendar_start_auth and share the returned URL.
+3. The user must open the URL in a browser that can reach this server's localhost.
+4. After they confirm they authorized, call calendar_complete_auth.
+5. Tell them the bot needs a full process restart to activate Calendar tools."""
