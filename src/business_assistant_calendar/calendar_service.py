@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from datetime import date, datetime, timedelta
 
@@ -26,13 +27,14 @@ class CalendarService:
         if not calendars:
             return "No calendars found."
 
-        lines = [f"Available calendars ({len(calendars)}):"]
+        items = []
         for cal in calendars:
-            name = cal.get("summary", "(unnamed)")
-            cal_id = cal.get("id", "")
-            primary = " (primary)" if cal.get("primary") else ""
-            lines.append(f"  - {name}{primary} | ID: {cal_id}")
-        return "\n".join(lines)
+            items.append({
+                "_id": cal.get("id", ""),
+                "name": cal.get("summary", "(unnamed)"),
+                "primary": bool(cal.get("primary")),
+            })
+        return json.dumps({"calendars": items})
 
     def list_events(self, date_str: str | None = None, days: int = 1) -> str:
         """List events for a date range. Defaults to today."""
@@ -56,19 +58,8 @@ class CalendarService:
                     f"to {(start_date + timedelta(days=days)).isoformat()}."
                 )
 
-            if days == 1:
-                header = f"Events for {start_date.isoformat()} ({len(events)}):"
-            else:
-                end_date = start_date + timedelta(days=days)
-                header = (
-                    f"Events from {start_date.isoformat()} to "
-                    f"{end_date.isoformat()} ({len(events)}):"
-                )
-
-            lines = [header]
-            for event in events:
-                lines.append(_format_event(event))
-            return "\n".join(lines)
+            items = [_format_event_dict(event) for event in events]
+            return json.dumps({"events": items})
         except Exception as e:
             return f"Error listing events: {e}"
 
@@ -126,8 +117,8 @@ class CalendarService:
         """Delete an event by Google Calendar event ID."""
         success = self._client.delete_event(event_id, calendar_id)
         if success:
-            return f"Event {event_id} deleted successfully."
-        return f"Failed to delete event {event_id}."
+            return "Event deleted successfully."
+        return "Failed to delete event."
 
     def import_ics_event(
         self, ics_data: str, calendar_id: str | None = None
@@ -137,7 +128,7 @@ class CalendarService:
             ics_bytes = ics_data.encode("utf-8")
             event_id = self._client.add_event_from_ics(ics_bytes, calendar_id)
             if event_id:
-                return f"Event imported successfully. Event ID: {event_id}"
+                return "Event imported successfully."
             return "Failed to import event from ICS data. No VEVENT found."
         except Exception as e:
             return f"Error importing ICS event: {e}"
@@ -154,20 +145,21 @@ class CalendarService:
                 if cid not in calendar_ids:
                     calendar_ids.append(cid)
 
-            conflicts: list[str] = []
+            conflicts: list[dict[str, str]] = []
             for cal_id in calendar_ids:
                 events = self._client.list_events_in_range(cal_id, start_dt, end_dt)
                 for event in events:
-                    summary = event.get("summary", "(no title)")
-                    event_start = event.get("start", {}).get(
-                        "dateTime", event.get("start", {}).get("date", "")
-                    )
-                    event_end = event.get("end", {}).get(
-                        "dateTime", event.get("end", {}).get("date", "")
-                    )
-                    conflicts.append(
-                        f"  - {summary} ({event_start} — {event_end}) [calendar: {cal_id}]"
-                    )
+                    conflicts.append({
+                        "_id": event.get("id", ""),
+                        "summary": event.get("summary", "(no title)"),
+                        "start": event.get("start", {}).get(
+                            "dateTime", event.get("start", {}).get("date", "")
+                        ),
+                        "end": event.get("end", {}).get(
+                            "dateTime", event.get("end", {}).get("date", "")
+                        ),
+                        "calendar": cal_id,
+                    })
 
             if not conflicts:
                 return (
@@ -176,13 +168,7 @@ class CalendarService:
                     f"{end_dt.strftime('%Y-%m-%d %H:%M')}."
                 )
 
-            lines = [
-                f"Conflicts found ({len(conflicts)}) between "
-                f"{start_dt.strftime('%Y-%m-%d %H:%M')} and "
-                f"{end_dt.strftime('%Y-%m-%d %H:%M')}:"
-            ]
-            lines.extend(conflicts)
-            return "\n".join(lines)
+            return json.dumps({"conflicts": conflicts})
         except Exception as e:
             return f"Error checking conflicts: {e}"
 
@@ -209,16 +195,14 @@ class CalendarService:
             if not matches:
                 return f"No upcoming events matching '{query}' found."
 
-            lines = [f"Events matching '{query}' ({len(matches)} found):"]
-            for event in matches:
-                lines.append(_format_event(event))
-            return "\n".join(lines)
+            items = [_format_event_dict(event) for event in matches]
+            return json.dumps({"results": items})
         except Exception as e:
             return f"Error searching events: {e}"
 
 
-def _format_event(event: dict) -> str:
-    """Format a single Google Calendar event for display."""
+def _format_event_dict(event: dict) -> dict:
+    """Format a single Google Calendar event as a dict for JSON output."""
     summary = event.get("summary", "(no title)")
     start = event.get("start", {})
     end = event.get("end", {})
@@ -245,12 +229,14 @@ def _format_event(event: dict) -> str:
     except Exception:
         end_display = end_str
 
-    time_display = f"{start_display} - {end_display}" if end_display else start_display
+    result: dict[str, str] = {
+        "_id": event.get("id", ""),
+        "time": f"{start_display} - {end_display}" if end_display else start_display,
+        "summary": summary,
+    }
 
     location = event.get("location", "")
-    event_id = event.get("id", "")
-
-    line = f"  [{event_id}] {time_display} | {summary}"
     if location:
-        line += f" | {location}"
-    return line
+        result["location"] = location
+
+    return result

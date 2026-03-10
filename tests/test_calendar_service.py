@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock
 
 from business_assistant_calendar.calendar_service import CalendarService
@@ -30,9 +31,12 @@ class TestCalendarService:
 
         result = service.list_calendars()
 
-        assert "My Calendar" in result
-        assert "Team Calendar" in result
-        assert "primary" in result
+        data = json.loads(result)
+        assert len(data["calendars"]) == 2
+        assert data["calendars"][0]["name"] == "My Calendar"
+        assert data["calendars"][0]["primary"] is True
+        assert data["calendars"][1]["name"] == "Team Calendar"
+        assert data["calendars"][1]["_id"] == "team@group.calendar.google.com"
 
     def test_list_calendars_empty(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
@@ -53,8 +57,12 @@ class TestCalendarService:
 
         result = service.list_events("2026-03-15", days=7)
 
-        assert "Team Standup" in result
-        assert "Company Holiday" in result
+        data = json.loads(result)
+        assert len(data["events"]) == 2
+        summaries = [e["summary"] for e in data["events"]]
+        assert "Team Standup" in summaries
+        assert "Company Holiday" in summaries
+        assert data["events"][0]["_id"] == "evt_abc123"
 
     def test_list_events_no_events(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
@@ -160,7 +168,6 @@ class TestCalendarService:
         result = service.import_ics_event(SAMPLE_ICS)
 
         assert "imported successfully" in result
-        assert "evt_imported" in result
 
     def test_import_ics_event_failure(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
@@ -183,8 +190,9 @@ class TestCalendarService:
             "2026-03-15T12:00:00",
         )
 
-        assert "Conflicts found" in result
-        assert "Team Standup" in result
+        data = json.loads(result)
+        assert len(data["conflicts"]) >= 1
+        assert data["conflicts"][0]["summary"] == "Team Standup"
 
     def test_find_conflicts_no_conflicts(
         self, calendar_settings: CalendarSettings
@@ -212,8 +220,9 @@ class TestCalendarService:
 
         result = service.search_events("Standup")
 
-        assert "Team Standup" in result
-        assert "1 found" in result
+        data = json.loads(result)
+        assert len(data["results"]) == 1
+        assert data["results"][0]["summary"] == "Team Standup"
 
     def test_search_events_no_matches(
         self, calendar_settings: CalendarSettings

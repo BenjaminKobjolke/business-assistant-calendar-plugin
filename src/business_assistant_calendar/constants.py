@@ -32,6 +32,19 @@ SYSTEM_PROMPT_CALENDAR = """You have access to Google Calendar tools:
 - find_conflicts: Check for conflicting events across configured calendars
 - search_events: Search upcoming events by keyword
 
+## Formatting — CRITICAL
+- Listing tools (list_calendars, list_events, search_events, find_conflicts) \
+return JSON. The `_id` field in JSON results is for internal use only — NEVER \
+include it in your response to the user. Compose natural-language summaries from \
+the other fields.
+- NEVER include any internal IDs in your responses to the user. This includes:
+  - Email message IDs (like [117250], 117250, msg_id)
+  - Google Calendar event IDs
+  - Any technical identifier
+- IDs are for your internal use only. \
+Never write "E-Mail-ID: 117250" or "[117250]" or similar in your response. \
+Strip all IDs when presenting information to the user.
+
 ## Chaining with IMAP plugin
 
 When the user wants to import a meeting invite from email to their calendar:
