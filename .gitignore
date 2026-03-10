@@ -209,3 +209,7 @@ __marimo__/
 .ruff_cache
 token.json
 credentials.json
+
+# Code analysis
+tools/analyze_code_config.bat
+code_analysis_results/

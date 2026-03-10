@@ -27,6 +27,16 @@ The plugin exposes `register(registry: PluginRegistry)` which:
 2. Skips registration if GOOGLE_CALENDAR_CREDENTIALS_PATH not configured
 3. Creates CalendarService and registers 8 PydanticAI tools
 
+## Code Analysis
+
+After implementing new features or making significant changes, run the code analysis:
+
+```bash
+powershell -Command "cd 'D:\GIT\BenjaminKobjolke\business-assistant-calendar-plugin'; cmd /c '.\tools\analyze_code.bat'"
+```
+
+Fix any reported issues before committing.
+
 ## Rules
 
 - Use objects for related values (DTOs/Settings)
