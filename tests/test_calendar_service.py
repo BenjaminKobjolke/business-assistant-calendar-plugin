@@ -234,3 +234,21 @@ class TestCalendarService:
         result = service.search_events("Nonexistent")
 
         assert "No upcoming events matching" in result
+
+    def test_import_ics_event_with_null_bytes(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        """ICS string containing null bytes and replacement chars should still import."""
+        mock_client = MagicMock()
+        mock_client.add_event_from_ics.return_value = "evt_imported"
+        service = self._make_service(calendar_settings, mock_client)
+
+        corrupted_ics = SAMPLE_ICS.replace("VEVENT", "V\x00EVENT") + "\ufffd"
+        result = service.import_ics_event(corrupted_ics)
+
+        assert "imported successfully" in result
+        # Verify the bytes passed to the client have no null bytes or replacement chars
+        call_args = mock_client.add_event_from_ics.call_args
+        ics_bytes = call_args[0][0]
+        assert b"\x00" not in ics_bytes
+        assert "\ufffd".encode() not in ics_bytes

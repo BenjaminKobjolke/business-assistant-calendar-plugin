@@ -125,7 +125,8 @@ class CalendarService:
     ) -> str:
         """Import ICS calendar data to Google Calendar."""
         try:
-            ics_bytes = ics_data.encode("utf-8")
+            sanitized = ics_data.replace("\x00", "").replace("\ufffd", "")
+            ics_bytes = sanitized.encode("utf-8")
             event_id = self._client.add_event_from_ics(ics_bytes, calendar_id)
             if event_id:
                 return "Event imported successfully."
