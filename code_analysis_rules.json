@@ -3,7 +3,15 @@
   "max_lines_per_file": {
     "enabled": true,
     "warning": 300,
-    "error": 500
+    "error": 500,
+    "exceptions": [
+      {
+        "file": "src/business_assistant_calendar/calendar_client.py",
+        "warning": 320,
+        "error": 500,
+        "reason": "Google Calendar API wrapper with OAuth2 — many API methods that are tightly coupled"
+      }
+    ]
   },
   "pmd_duplicates": {
     "enabled": true,

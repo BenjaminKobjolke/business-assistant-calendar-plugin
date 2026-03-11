@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from business_assistant_calendar.calendar_client import GoogleCalendarClient
 from business_assistant_calendar.config import CalendarSettings
+from business_assistant_calendar.vevent_converter import vevent_to_google_event
 from tests.conftest import SAMPLE_ICS
 
 
@@ -225,7 +226,7 @@ class TestVeventConversion:
             "rrule": None,
         }.get(key)
 
-        result = GoogleCalendarClient._vevent_to_google_event(mock_vevent)
+        result = vevent_to_google_event(mock_vevent)
 
         assert result["iCalUID"] == "uid-123"
         assert result["summary"] == "Test Event"
@@ -251,7 +252,7 @@ class TestVeventConversion:
             "rrule": None,
         }.get(key)
 
-        result = GoogleCalendarClient._vevent_to_google_event(mock_vevent)
+        result = vevent_to_google_event(mock_vevent)
 
         assert "dateTime" in result["start"]
         assert "dateTime" in result["end"]
@@ -275,7 +276,7 @@ class TestVeventConversion:
             "rrule": None,
         }.get(key)
 
-        result = GoogleCalendarClient._vevent_to_google_event(mock_vevent)
+        result = vevent_to_google_event(mock_vevent)
 
         assert "date" in result["start"]
         assert "date" in result["end"]
