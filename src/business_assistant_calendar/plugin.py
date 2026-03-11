@@ -15,6 +15,7 @@ from pydantic_ai import RunContext, Tool
 from .calendar_service import CalendarService
 from .config import load_calendar_settings
 from .constants import (
+    PLUGIN_CATEGORY,
     PLUGIN_DATA_CALENDAR_AUTH_STATE,
     PLUGIN_DATA_CALENDAR_SERVICE,
     PLUGIN_DATA_CALENDAR_SETTINGS,
@@ -221,6 +222,7 @@ def register(registry: PluginRegistry) -> None:
             name=PLUGIN_NAME,
             description=PLUGIN_DESCRIPTION,
             system_prompt_extra=SYSTEM_PROMPT_CALENDAR_SETUP,
+            category=PLUGIN_CATEGORY,
         )
         registry.register(info, tools)
         return
@@ -242,6 +244,7 @@ def register(registry: PluginRegistry) -> None:
         name=PLUGIN_NAME,
         description=PLUGIN_DESCRIPTION,
         system_prompt_extra=SYSTEM_PROMPT_CALENDAR,
+        category=PLUGIN_CATEGORY,
     )
 
     registry.register(info, tools)

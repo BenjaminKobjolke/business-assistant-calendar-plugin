@@ -14,8 +14,9 @@ DEFAULT_CALENDAR_ID = "primary"
 DEFAULT_TIMEZONE = "Europe/Berlin"
 DEFAULT_OAUTH_PORT = 51032
 
-# Plugin name
+# Plugin name and category
 PLUGIN_NAME = "calendar"
+PLUGIN_CATEGORY = "calendar"
 PLUGIN_DESCRIPTION = "Google Calendar operations"
 
 # Plugin data keys
