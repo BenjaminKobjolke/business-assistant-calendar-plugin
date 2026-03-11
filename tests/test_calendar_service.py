@@ -63,6 +63,12 @@ class TestCalendarService:
         assert "Team Standup" in summaries
         assert "Company Holiday" in summaries
         assert data["events"][0]["_id"] == "evt_abc123"
+        # Timed event should not have start_date/end_date
+        assert "start_date" not in data["events"][0]
+        # All-day event should include explicit date range
+        all_day = data["events"][1]
+        assert all_day["start_date"] == "2026-03-20"
+        assert all_day["end_date"] == "2026-03-21"
 
     def test_list_events_no_events(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
@@ -234,6 +240,28 @@ class TestCalendarService:
         result = service.search_events("Nonexistent")
 
         assert "No upcoming events matching" in result
+
+    def test_all_day_event_includes_date_range(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        """Multi-day all-day events must expose start_date and end_date."""
+        multi_day_event = {
+            "id": "evt_conference",
+            "summary": "Conference",
+            "start": {"date": "2026-03-10"},
+            "end": {"date": "2026-03-13"},
+        }
+        mock_client = MagicMock()
+        mock_client.list_events_in_range.return_value = [multi_day_event]
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.list_events("2026-03-10", days=7)
+
+        data = json.loads(result)
+        event = data["events"][0]
+        assert event["time"] == "all-day"
+        assert event["start_date"] == "2026-03-10"
+        assert event["end_date"] == "2026-03-13"
 
     def test_import_ics_event_with_null_bytes(
         self, calendar_settings: CalendarSettings

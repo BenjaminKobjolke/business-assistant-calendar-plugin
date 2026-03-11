@@ -212,6 +212,7 @@ def _format_event_dict(event: dict) -> dict:
     end_str = end.get("dateTime", end.get("date", ""))
 
     # Format datetime strings for readability
+    is_all_day = "T" not in start_str and start_str != ""
     try:
         if "T" in start_str:
             start_dt = dateutil_parser.parse(start_str)
@@ -235,6 +236,11 @@ def _format_event_dict(event: dict) -> dict:
         "time": f"{start_display} - {end_display}" if end_display else start_display,
         "summary": summary,
     }
+
+    # Include explicit date range for all-day events so the AI knows the span
+    if is_all_day:
+        result["start_date"] = start_str
+        result["end_date"] = end_str
 
     location = event.get("location", "")
     if location:
