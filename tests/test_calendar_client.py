@@ -211,6 +211,47 @@ class TestGoogleCalendarClient:
         assert len(result) == 2
         assert result[0]["summary"] == "Meeting 1"
 
+    def test_update_event_success(self, calendar_settings: CalendarSettings) -> None:
+        mock_service = MagicMock()
+        mock_service.events().patch().execute.return_value = {
+            "id": "evt_123",
+            "summary": "Updated Meeting",
+            "location": "Room B",
+        }
+        client = self._make_client(calendar_settings, mock_service)
+
+        result = client.update_event(
+            "evt_123", summary="Updated Meeting", location="Room B"
+        )
+
+        assert result is not None
+        assert result["summary"] == "Updated Meeting"
+
+    def test_update_event_failure(self, calendar_settings: CalendarSettings) -> None:
+        mock_service = MagicMock()
+        mock_service.events().patch().execute.side_effect = Exception("API error")
+        client = self._make_client(calendar_settings, mock_service)
+
+        result = client.update_event("evt_123", summary="Updated")
+
+        assert result is None
+
+    def test_update_event_partial_fields(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().patch().execute.return_value = {
+            "id": "evt_123",
+            "summary": "Original",
+            "location": "New Location",
+        }
+        client = self._make_client(calendar_settings, mock_service)
+
+        result = client.update_event("evt_123", location="New Location")
+
+        assert result is not None
+        assert result["location"] == "New Location"
+
 
 class TestVeventConversion:
     def test_vevent_to_google_event_basic(self) -> None:

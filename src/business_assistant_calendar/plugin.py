@@ -78,6 +78,25 @@ def _delete_event(
     return _get_service(ctx).delete_event(event_id, calendar_id)
 
 
+def _update_event(
+    ctx: RunContext[Deps],
+    event_id: str,
+    calendar_id: str | None = None,
+    summary: str | None = None,
+    location: str | None = None,
+    description: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
+) -> str:
+    """Update an existing event's fields. Only provided fields are changed.
+    Use list_events or search_events first to find the event_id.
+    """
+    return _get_service(ctx).update_event(
+        event_id, calendar_id=calendar_id, summary=summary,
+        location=location, description=description, start=start, end=end,
+    )
+
+
 def _import_ics_event(
     ctx: RunContext[Deps], ics_data: str, calendar_id: str | None = None
 ) -> str:
@@ -235,6 +254,7 @@ def register(registry: PluginRegistry) -> None:
         Tool(_create_event, name="create_event"),
         Tool(_create_all_day_event, name="create_all_day_event"),
         Tool(_delete_event, name="delete_event"),
+        Tool(_update_event, name="update_event"),
         Tool(_import_ics_event, name="import_ics_event"),
         Tool(_find_conflicts, name="find_conflicts"),
         Tool(_search_events, name="search_events"),

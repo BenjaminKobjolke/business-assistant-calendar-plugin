@@ -166,6 +166,28 @@ class TestCalendarService:
 
         assert "Failed to delete" in result
 
+    def test_update_event_success(self, calendar_settings: CalendarSettings) -> None:
+        mock_client = MagicMock()
+        mock_client.update_event.return_value = {
+            "id": "evt_123",
+            "summary": "Updated Meeting",
+        }
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.update_event("evt_123", summary="Updated Meeting")
+
+        assert "Event updated" in result
+        assert "Updated Meeting" in result
+
+    def test_update_event_failure(self, calendar_settings: CalendarSettings) -> None:
+        mock_client = MagicMock()
+        mock_client.update_event.return_value = None
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.update_event("evt_123", summary="Updated")
+
+        assert "Failed to update" in result
+
     def test_import_ics_event_success(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
         mock_client.add_event_from_ics.return_value = "evt_imported"

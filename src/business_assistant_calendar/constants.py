@@ -31,6 +31,7 @@ SYSTEM_PROMPT_CALENDAR = """You have access to Google Calendar tools:
 - create_event: Create a timed event (summary, start, end, add_google_meet for Meet)
 - create_all_day_event: Create an all-day event (summary, date_str YYYY-MM-DD)
 - delete_event: Delete an event by Google Calendar event ID
+- update_event: Update an existing event's fields (summary, location, description, start, end)
 - import_ics_event: Import ICS calendar data to Google Calendar
 - find_conflicts: Check for conflicting events across configured calendars
 - search_events: Search upcoming events by keyword
@@ -88,7 +89,13 @@ When the user asks for today's events/appointments/agenda:
 ## Deleting events
 
 When deleting events, first use list_events or search_events to find the event \
-and confirm the correct event with the user before deleting."""
+and confirm the correct event with the user before deleting.
+
+## Updating events
+
+Use update_event to modify existing event fields (location, description, summary, time).
+First find the event via list_events or search_events, then update it by event_id.
+Only provide the fields that need to change — omitted fields stay unchanged."""
 
 SYSTEM_PROMPT_CALENDAR_SETUP = """Google Calendar integration is available \
 but not yet authenticated.

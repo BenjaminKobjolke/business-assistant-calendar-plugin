@@ -120,6 +120,36 @@ class CalendarService:
             return "Event deleted successfully."
         return "Failed to delete event."
 
+    def update_event(
+        self,
+        event_id: str,
+        calendar_id: str | None = None,
+        summary: str | None = None,
+        location: str | None = None,
+        description: str | None = None,
+        start: str | None = None,
+        end: str | None = None,
+    ) -> str:
+        """Update an existing event. Only provided fields are changed."""
+        try:
+            start_dt = dateutil_parser.parse(start) if start else None
+            end_dt = dateutil_parser.parse(end) if end else None
+            result = self._client.update_event(
+                event_id,
+                calendar_id=calendar_id,
+                summary=summary,
+                location=location,
+                description=description,
+                start_dt=start_dt,
+                end_dt=end_dt,
+            )
+            if result:
+                updated_summary = result.get("summary", summary or event_id)
+                return f"Event updated: '{updated_summary}'"
+            return "Failed to update event."
+        except Exception as e:
+            return f"Error updating event: {e}"
+
     def import_ics_event(
         self, ics_data: str, calendar_id: str | None = None
     ) -> str:

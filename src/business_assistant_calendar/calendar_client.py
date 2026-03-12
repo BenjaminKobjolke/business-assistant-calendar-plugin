@@ -243,6 +243,41 @@ class GoogleCalendarClient:
             logger.error("Failed to delete event by ID: %s", e)
             return False
 
+    def update_event(
+        self,
+        event_id: str,
+        calendar_id: str | None = None,
+        summary: str | None = None,
+        location: str | None = None,
+        description: str | None = None,
+        start_dt: datetime | None = None,
+        end_dt: datetime | None = None,
+    ) -> dict | None:
+        """Update an existing calendar event. Only provided fields are changed."""
+        try:
+            service = self._get_service()
+            cal_id = calendar_id or self._settings.calendar_id
+            timezone = self._settings.timezone
+            body: dict = {}
+            if summary is not None:
+                body["summary"] = summary
+            if location is not None:
+                body["location"] = location
+            if description is not None:
+                body["description"] = description
+            if start_dt is not None:
+                body["start"] = {"dateTime": start_dt.isoformat(), "timeZone": timezone}
+            if end_dt is not None:
+                body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": timezone}
+            result = service.events().patch(
+                calendarId=cal_id, eventId=event_id, body=body
+            ).execute()
+            logger.info("Event updated in Google Calendar, id=%s", event_id)
+            return result
+        except Exception as e:
+            logger.error("Failed to update event in Google Calendar: %s", e)
+            return None
+
     def event_exists(
         self, uid: str | None, summary: str, start_time: datetime | None
     ) -> bool:

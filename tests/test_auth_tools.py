@@ -189,4 +189,4 @@ class TestSetupModeRegistration:
         register(registry)
 
         tools = registry.all_tools()
-        assert len(tools) == 8
+        assert len(tools) == 9
