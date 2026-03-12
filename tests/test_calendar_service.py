@@ -70,6 +70,21 @@ class TestCalendarService:
         assert all_day["start_date"] == "2026-03-20"
         assert all_day["end_date"] == "2026-03-21"
 
+    def test_list_events_with_calendar_id(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.list_events_in_range.return_value = [SAMPLE_GOOGLE_EVENT]
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.list_events("2026-03-15", calendar_id="other@group.calendar")
+
+        data = json.loads(result)
+        assert len(data["events"]) == 1
+        mock_client.list_events_in_range.assert_called_once()
+        call_args = mock_client.list_events_in_range.call_args
+        assert call_args[0][0] == "other@group.calendar"
+
     def test_list_events_no_events(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
         mock_client.list_events_in_range.return_value = []
@@ -251,6 +266,22 @@ class TestCalendarService:
         data = json.loads(result)
         assert len(data["results"]) == 1
         assert data["results"][0]["summary"] == "Team Standup"
+
+    def test_search_events_with_calendar_id(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.list_events_in_range.return_value = [SAMPLE_GOOGLE_EVENT]
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.search_events(
+            "Standup", calendar_id="other@group.calendar"
+        )
+
+        data = json.loads(result)
+        assert len(data["results"]) == 1
+        call_args = mock_client.list_events_in_range.call_args
+        assert call_args[0][0] == "other@group.calendar"
 
     def test_search_events_no_matches(
         self, calendar_settings: CalendarSettings

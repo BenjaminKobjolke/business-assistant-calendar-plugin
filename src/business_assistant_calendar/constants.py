@@ -27,14 +27,14 @@ PLUGIN_DATA_CALENDAR_AUTH_STATE = "calendar_auth_state"
 # System prompt extra
 SYSTEM_PROMPT_CALENDAR = """You have access to Google Calendar tools:
 - list_calendars: List all available Google calendars (name, ID)
-- list_events: List events for today or a date range (date_str, days)
+- list_events: List events for today or a date range (date_str, days, calendar_id)
 - create_event: Create a timed event (summary, start, end, add_google_meet for Meet)
 - create_all_day_event: Create an all-day event (summary, date_str YYYY-MM-DD)
 - delete_event: Delete an event by Google Calendar event ID
 - update_event: Update an existing event's fields (summary, location, description, start, end)
 - import_ics_event: Import ICS calendar data to Google Calendar
 - find_conflicts: Check for conflicting events across configured calendars
-- search_events: Search upcoming events by keyword
+- search_events: Search upcoming events by keyword (query, days_ahead, calendar_id)
 
 ## Formatting — CRITICAL
 - Listing tools (list_calendars, list_events, search_events, find_conflicts) \
@@ -95,7 +95,13 @@ and confirm the correct event with the user before deleting.
 
 Use update_event to modify existing event fields (location, description, summary, time).
 First find the event via list_events or search_events, then update it by event_id.
-Only provide the fields that need to change — omitted fields stay unchanged."""
+Only provide the fields that need to change — omitted fields stay unchanged.
+
+## Searching / listing in specific calendars
+
+list_events and search_events default to the primary calendar. When the user mentions \
+a specific calendar by name (e.g., "Privat", "Team"), first use list_calendars to find \
+the calendar_id, then pass it to list_events or search_events."""
 
 SYSTEM_PROMPT_CALENDAR_SETUP = """Google Calendar integration is available \
 but not yet authenticated.

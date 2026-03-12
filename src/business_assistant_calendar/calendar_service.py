@@ -36,7 +36,12 @@ class CalendarService:
             })
         return json.dumps({"calendars": items})
 
-    def list_events(self, date_str: str | None = None, days: int = 1) -> str:
+    def list_events(
+        self,
+        date_str: str | None = None,
+        days: int = 1,
+        calendar_id: str | None = None,
+    ) -> str:
         """List events for a date range. Defaults to today."""
         try:
             start_date = dateutil_parser.parse(date_str).date() if date_str else date.today()
@@ -46,9 +51,8 @@ class CalendarService:
             )
             end_dt = start_dt + timedelta(days=days)
 
-            events = self._client.list_events_in_range(
-                self._settings.calendar_id, start_dt, end_dt
-            )
+            cal_id = calendar_id or self._settings.calendar_id
+            events = self._client.list_events_in_range(cal_id, start_dt, end_dt)
 
             if not events:
                 if days == 1:
@@ -203,15 +207,16 @@ class CalendarService:
         except Exception as e:
             return f"Error checking conflicts: {e}"
 
-    def search_events(self, query: str, days_ahead: int = 30) -> str:
+    def search_events(
+        self, query: str, days_ahead: int = 30, calendar_id: str | None = None,
+    ) -> str:
         """Search upcoming events by keyword."""
         try:
             start_dt = datetime.now()
             end_dt = start_dt + timedelta(days=days_ahead)
 
-            events = self._client.list_events_in_range(
-                self._settings.calendar_id, start_dt, end_dt
-            )
+            cal_id = calendar_id or self._settings.calendar_id
+            events = self._client.list_events_in_range(cal_id, start_dt, end_dt)
 
             query_lower = query.lower()
             matches = []

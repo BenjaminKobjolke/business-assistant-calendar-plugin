@@ -39,10 +39,17 @@ def _list_calendars(ctx: RunContext[Deps]) -> str:
 
 
 def _list_events(
-    ctx: RunContext[Deps], date_str: str | None = None, days: int = 1
+    ctx: RunContext[Deps],
+    date_str: str | None = None,
+    days: int = 1,
+    calendar_id: str | None = None,
 ) -> str:
-    """List events for today or a date range. Optionally specify date_str (YYYY-MM-DD) and days."""
-    return _get_service(ctx).list_events(date_str=date_str, days=days)
+    """List events for today or a date range. Optionally specify date_str (YYYY-MM-DD), days,
+    and calendar_id to query a specific calendar (use list_calendars to find IDs).
+    """
+    return _get_service(ctx).list_events(
+        date_str=date_str, days=days, calendar_id=calendar_id,
+    )
 
 
 def _create_event(
@@ -110,10 +117,17 @@ def _find_conflicts(ctx: RunContext[Deps], start: str, end: str) -> str:
 
 
 def _search_events(
-    ctx: RunContext[Deps], query: str, days_ahead: int = 30
+    ctx: RunContext[Deps],
+    query: str,
+    days_ahead: int = 30,
+    calendar_id: str | None = None,
 ) -> str:
-    """Search upcoming events by keyword within the next N days (default 30)."""
-    return _get_service(ctx).search_events(query, days_ahead)
+    """Search upcoming events by keyword within the next N days (default 30).
+    Optionally specify calendar_id to search a specific calendar.
+    """
+    return _get_service(ctx).search_events(
+        query, days_ahead, calendar_id=calendar_id,
+    )
 
 
 # --- Setup / Auth tools ---
