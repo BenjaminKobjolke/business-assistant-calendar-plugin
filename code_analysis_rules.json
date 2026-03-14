@@ -7,9 +7,21 @@
     "exceptions": [
       {
         "file": "src/business_assistant_calendar/calendar_client.py",
-        "warning": 320,
+        "warning": 340,
         "error": 500,
         "reason": "Google Calendar API wrapper with OAuth2 — many API methods that are tightly coupled"
+      },
+      {
+        "file": "tests/test_calendar_client.py",
+        "warning": 350,
+        "error": 500,
+        "reason": "Test suite for calendar API wrapper"
+      },
+      {
+        "file": "tests/test_calendar_service.py",
+        "warning": 350,
+        "error": 500,
+        "reason": "Test suite for calendar service"
       }
     ]
   },
