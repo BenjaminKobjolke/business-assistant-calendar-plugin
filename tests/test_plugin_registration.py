@@ -28,7 +28,7 @@ class TestPluginRegistration:
         registry = PluginRegistry()
         register(registry)
 
-        assert len(registry.all_tools()) == 9
+        assert len(registry.all_tools()) == 8
         assert len(registry.plugins) == 1
         assert registry.plugins[0].name == "calendar"
         assert registry.system_prompt_extras() != ""

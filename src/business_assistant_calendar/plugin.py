@@ -55,27 +55,27 @@ def _list_events(
 def _create_event(
     ctx: RunContext[Deps],
     summary: str,
-    start: str,
-    end: str,
+    start: str = "",
+    end: str = "",
     calendar_id: str | None = None,
     add_google_meet: bool = False,
+    all_day: bool = False,
+    date_str: str = "",
 ) -> str:
-    """Create a timed event. Provide summary, start and end as ISO datetime strings.
-    Set add_google_meet=True to attach a Google Meet video conference link.
+    """Create a calendar event.
+
+    For timed events (all_day=False, default): provide summary, start,
+    end as ISO datetime strings. Set add_google_meet=True for Meet link.
+    For all-day events (all_day=True): provide summary and date_str
+    (YYYY-MM-DD).
     """
+    if all_day:
+        return _get_service(ctx).create_all_day_event(
+            summary, date_str, calendar_id,
+        )
     return _get_service(ctx).create_event(
-        summary, start, end, calendar_id, add_google_meet
+        summary, start, end, calendar_id, add_google_meet,
     )
-
-
-def _create_all_day_event(
-    ctx: RunContext[Deps],
-    summary: str,
-    date_str: str,
-    calendar_id: str | None = None,
-) -> str:
-    """Create an all-day event. Provide summary and date_str (YYYY-MM-DD)."""
-    return _get_service(ctx).create_all_day_event(summary, date_str, calendar_id)
 
 
 def _delete_event(
@@ -266,7 +266,6 @@ def register(registry: PluginRegistry) -> None:
         Tool(_list_calendars, name="list_calendars"),
         Tool(_list_events, name="list_events"),
         Tool(_create_event, name="create_event"),
-        Tool(_create_all_day_event, name="create_all_day_event"),
         Tool(_delete_event, name="delete_event"),
         Tool(_update_event, name="update_event"),
         Tool(_import_ics_event, name="import_ics_event"),

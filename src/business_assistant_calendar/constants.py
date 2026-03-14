@@ -28,8 +28,9 @@ PLUGIN_DATA_CALENDAR_AUTH_STATE = "calendar_auth_state"
 SYSTEM_PROMPT_CALENDAR = """You have access to Google Calendar tools:
 - list_calendars: List all available Google calendars (name, ID)
 - list_events: List events for today or a date range (date_str, days, calendar_id)
-- create_event: Create a timed event (summary, start, end, add_google_meet for Meet)
-- create_all_day_event: Create an all-day event (summary, date_str YYYY-MM-DD)
+- create_event: Create a calendar event. For timed events: provide summary, start, \
+end (ISO datetime). Set add_google_meet=True for a Meet link. For all-day events: \
+set all_day=True and provide summary and date_str (YYYY-MM-DD).
 - delete_event: Delete an event by Google Calendar event ID
 - update_event: Update an existing event's fields (summary, location, description, start, end)
 - import_ics_event: Import ICS calendar data to Google Calendar
@@ -65,8 +66,9 @@ When the user asks to create or add an event/date, follow this workflow strictly
 - Ask: "Shall I add this to your calendar?"
 
 ### Step 2: Create — ONLY when the user explicitly confirms
-- "yes" / "ja" / "do it" / "add it" → call create_event or create_all_day_event
-- NEVER call create_event or create_all_day_event without explicit user confirmation
+- "yes" / "ja" / "do it" / "add it" → call create_event (with all_day=True for \
+all-day events)
+- NEVER call create_event without explicit user confirmation
 
 ## All-day events — date range interpretation
 
