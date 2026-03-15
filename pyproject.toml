@@ -4,10 +4,7 @@ version = "0.1.0"
 description = "Google Calendar plugin for Business Assistant v2"
 requires-python = ">=3.11,<3.13"
 dependencies = [
-    "google-api-python-client>=2.100.0",
-    "google-auth>=2.23.0",
-    "google-auth-oauthlib>=1.1.0",
-    "google-auth-httplib2>=0.2.0",
+    "business-assistant-google-auth",
     "python-dateutil>=2.8.0",
     "icalendar>=5.0.0",
     "business-assistant-v2",
@@ -22,6 +19,7 @@ packages = ["src/business_assistant_calendar"]
 
 [tool.uv.sources]
 business-assistant-v2 = { path = "D:/GIT/BenjaminKobjolke/business-assistant-v2", editable = true }
+business-assistant-google-auth = { path = "D:/GIT/BenjaminKobjolke/business-assistant-google-auth", editable = true }
 
 [dependency-groups]
 dev = [

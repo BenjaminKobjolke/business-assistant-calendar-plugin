@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 
+from business_assistant_google_auth import GoogleAuthSettings
+
 from .constants import (
     DEFAULT_CALENDAR_ID,
     DEFAULT_OAUTH_PORT,
@@ -20,14 +22,11 @@ from .constants import (
 
 
 @dataclass(frozen=True)
-class CalendarSettings:
+class CalendarSettings(GoogleAuthSettings):
     """Google Calendar connection settings."""
 
-    credentials_path: str
-    token_path: str = DEFAULT_TOKEN_PATH
     calendar_id: str = DEFAULT_CALENDAR_ID
     timezone: str = DEFAULT_TIMEZONE
-    oauth_port: int = DEFAULT_OAUTH_PORT
     free_check_calendar_ids: tuple[str, ...] = field(default_factory=tuple)
 
 
@@ -48,10 +47,10 @@ def load_calendar_settings() -> CalendarSettings | None:
     return CalendarSettings(
         credentials_path=credentials_path,
         token_path=os.environ.get(ENV_GOOGLE_CALENDAR_TOKEN_PATH, DEFAULT_TOKEN_PATH),
-        calendar_id=os.environ.get(ENV_GOOGLE_CALENDAR_ID, DEFAULT_CALENDAR_ID),
-        timezone=os.environ.get(ENV_GOOGLE_CALENDAR_TIMEZONE, DEFAULT_TIMEZONE),
         oauth_port=int(
             os.environ.get(ENV_GOOGLE_CALENDAR_OAUTH_PORT, str(DEFAULT_OAUTH_PORT))
         ),
+        calendar_id=os.environ.get(ENV_GOOGLE_CALENDAR_ID, DEFAULT_CALENDAR_ID),
+        timezone=os.environ.get(ENV_GOOGLE_CALENDAR_TIMEZONE, DEFAULT_TIMEZONE),
         free_check_calendar_ids=free_check_ids,
     )

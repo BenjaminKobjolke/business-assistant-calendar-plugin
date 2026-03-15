@@ -31,18 +31,15 @@ def _make_ctx(plugin_data: dict) -> RunContext[Deps]:
 
 
 class TestStartAuth:
-    @patch("business_assistant_calendar.plugin.wsgiref.simple_server.make_server")
-    @patch("business_assistant_calendar.plugin.threading.Thread")
-    @patch("business_assistant_calendar.calendar_client.GoogleCalendarClient")
+    @patch("business_assistant_google_auth.auth_tools.wsgiref.simple_server.make_server")
+    @patch("business_assistant_google_auth.auth_tools.threading.Thread")
     @patch("google_auth_oauthlib.flow.InstalledAppFlow")
     def test_generates_url_and_starts_server(
         self,
         mock_flow_cls: MagicMock,
-        mock_client_cls: MagicMock,
         mock_thread_cls: MagicMock,
         mock_make_server: MagicMock,
     ) -> None:
-        mock_client_cls.SCOPES = ["https://www.googleapis.com/auth/calendar"]
         mock_flow = mock_flow_cls.from_client_secrets_file.return_value
         mock_flow.authorization_url.return_value = (
             "https://accounts.google.com/o/oauth2/auth?client_id=test",
@@ -91,7 +88,7 @@ class TestCompleteAuth:
 
         assert "Authorization not yet received" in result
 
-    @patch("business_assistant_calendar.plugin.Path")
+    @patch("business_assistant_google_auth.auth_tools.Path")
     def test_saves_token(self, mock_path_cls: MagicMock) -> None:
         mock_flow = MagicMock()
         mock_creds = MagicMock()

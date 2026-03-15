@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import logging
-import threading
-import wsgiref.simple_server
-import wsgiref.util
 from pathlib import Path
 
 from business_assistant.agent.deps import Deps
 from business_assistant.plugins.registry import PluginInfo, PluginRegistry
+from business_assistant_google_auth import create_complete_auth_tool, create_start_auth_tool
 from pydantic_ai import RunContext, Tool
 
+from .calendar_client import GoogleCalendarClient
 from .calendar_service import CalendarService
 from .config import load_calendar_settings
 from .constants import (
@@ -130,98 +129,19 @@ def _search_events(
     )
 
 
-# --- Setup / Auth tools ---
+# --- Setup / Auth tools (created via shared factory) ---
 
+_calendar_start_auth = create_start_auth_tool(
+    service_name="Google Calendar",
+    scopes=GoogleCalendarClient.SCOPES,
+    settings_key=PLUGIN_DATA_CALENDAR_SETTINGS,
+    auth_state_key=PLUGIN_DATA_CALENDAR_AUTH_STATE,
+)
 
-def _calendar_start_auth(ctx: RunContext[Deps]) -> str:
-    """Start Google Calendar OAuth and return the authorization URL."""
-    from google_auth_oauthlib.flow import InstalledAppFlow
-
-    from .calendar_client import GoogleCalendarClient
-
-    settings = ctx.deps.plugin_data[PLUGIN_DATA_CALENDAR_SETTINGS]
-    flow = InstalledAppFlow.from_client_secrets_file(
-        settings.credentials_path, GoogleCalendarClient.SCOPES
-    )
-    port = settings.oauth_port
-    flow.redirect_uri = f"http://localhost:{port}/"
-    auth_url, _ = flow.authorization_url(
-        access_type="offline", prompt="consent"
-    )
-
-    auth_state = {
-        "flow": flow,
-        "response_uri": None,
-        "done": threading.Event(),
-        "token_path": settings.token_path,
-    }
-
-    class _QuietHandler(wsgiref.simple_server.WSGIRequestHandler):
-        def log_message(self, format, *args):  # noqa: A002
-            pass
-
-    def _callback_app(environ, start_response):
-        start_response("200 OK", [("Content-type", "text/html")])
-        auth_state["response_uri"] = wsgiref.util.request_uri(environ)
-        auth_state["done"].set()
-        return [
-            b"<html><body>Authorization complete. "
-            b"You can close this window.</body></html>"
-        ]
-
-    def run_server():
-        server = wsgiref.simple_server.make_server(
-            "localhost", port, _callback_app, handler_class=_QuietHandler
-        )
-        server.timeout = 300
-        server.handle_request()
-        server.server_close()
-
-    thread = threading.Thread(target=run_server, daemon=True)
-    thread.start()
-
-    ctx.deps.plugin_data[PLUGIN_DATA_CALENDAR_AUTH_STATE] = auth_state
-    return (
-        f"Open this URL to authorize Google Calendar:\n{auth_url}\n\n"
-        "After you approve access in your browser, tell me and "
-        "I'll complete the setup."
-    )
-
-
-def _calendar_complete_auth(ctx: RunContext[Deps]) -> str:
-    """Complete Google Calendar authorization after user approved access."""
-    auth_state = ctx.deps.plugin_data.get(PLUGIN_DATA_CALENDAR_AUTH_STATE)
-    if auth_state is None:
-        return "No pending authorization. Please start the setup first."
-
-    if not auth_state["done"].is_set():
-        return (
-            "Authorization not yet received. "
-            "Please open the URL in your browser and approve access first."
-        )
-
-    try:
-        flow = auth_state["flow"]
-        response_uri = auth_state["response_uri"]
-        authorization_response = response_uri.replace("http", "https")
-        flow.fetch_token(authorization_response=authorization_response)
-        creds = flow.credentials
-
-        token_path = Path(auth_state["token_path"])
-        token_path.parent.mkdir(parents=True, exist_ok=True)
-        token_path.write_text(creds.to_json())
-
-        del ctx.deps.plugin_data[PLUGIN_DATA_CALENDAR_AUTH_STATE]
-        return (
-            "Google Calendar authorized! Token saved. "
-            "Please fully stop and restart the bot to activate Calendar tools."
-        )
-    except Exception as exc:
-        del ctx.deps.plugin_data[PLUGIN_DATA_CALENDAR_AUTH_STATE]
-        return (
-            f"Authorization failed: {exc}. "
-            "Please try starting the auth again."
-        )
+_calendar_complete_auth = create_complete_auth_tool(
+    service_name="Google Calendar",
+    auth_state_key=PLUGIN_DATA_CALENDAR_AUTH_STATE,
+)
 
 
 def register(registry: PluginRegistry) -> None:

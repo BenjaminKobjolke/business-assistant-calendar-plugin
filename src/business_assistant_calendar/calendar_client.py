@@ -5,8 +5,9 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import UTC, date, datetime, timedelta
-from pathlib import Path
 from typing import ClassVar
+
+from business_assistant_google_auth import GoogleAuthClient
 
 from .config import CalendarSettings
 from .vevent_converter import vevent_to_google_event
@@ -14,61 +15,17 @@ from .vevent_converter import vevent_to_google_event
 logger = logging.getLogger(__name__)
 
 
-class GoogleCalendarClient:
+class GoogleCalendarClient(GoogleAuthClient):
     """Wraps the Google Calendar API with OAuth2 auth and event operations."""
 
     SCOPES: ClassVar[list[str]] = ["https://www.googleapis.com/auth/calendar"]
 
     def __init__(self, settings: CalendarSettings) -> None:
         """Initialize with CalendarSettings."""
+        super().__init__(
+            settings, scopes=self.SCOPES, api_name="calendar", api_version="v3"
+        )
         self._settings = settings
-        self._credentials_path = Path(settings.credentials_path)
-        self._token_path = Path(settings.token_path)
-        self._service = None
-
-    def _get_service(self):
-        """Lazy-init Google Calendar API service with OAuth2."""
-        if self._service is not None:
-            return self._service
-
-        from google.auth.transport.requests import Request
-        from google.oauth2.credentials import Credentials
-        from google_auth_oauthlib.flow import InstalledAppFlow
-        from googleapiclient.discovery import build
-
-        creds: Credentials | None = None
-
-        if self._token_path.exists():
-            creds = Credentials.from_authorized_user_file(
-                str(self._token_path), self.SCOPES
-            )
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                try:
-                    creds.refresh(Request())
-                except Exception:
-                    logger.warning("Token refresh failed, re-authenticating")
-                    creds = None
-
-            if not creds:
-                if not self._credentials_path.exists():
-                    logger.error(
-                        "Google Calendar credentials file not found: %s. "
-                        "Download it from Google Cloud Console.",
-                        self._credentials_path,
-                    )
-                    msg = f"Credentials file not found: {self._credentials_path}"
-                    raise FileNotFoundError(msg)
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    str(self._credentials_path), self.SCOPES
-                )
-                creds = flow.run_local_server(port=self._settings.oauth_port)
-
-            self._token_path.write_text(creds.to_json())
-
-        self._service = build("calendar", "v3", credentials=creds)
-        return self._service
 
     def test_connection(self) -> bool:
         """Test the Google Calendar API connection."""
@@ -334,4 +291,3 @@ class GoogleCalendarClient:
         except Exception as e:
             logger.error("Error searching for event by summary and time: %s", e)
             return None
-
