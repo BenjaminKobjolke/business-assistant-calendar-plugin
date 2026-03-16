@@ -213,3 +213,4 @@ credentials.json
 # Code analysis
 tools/analyze_code_config.bat
 code_analysis_results/
+/.claude/commit_msg.tmp
