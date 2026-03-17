@@ -81,7 +81,7 @@ class GoogleCalendarClient(GoogleAuthClient):
         end_dt: datetime,
         calendar_id: str | None = None,
         add_google_meet: bool = False,
-    ) -> tuple[str | None, str]:
+    ) -> tuple[str, str]:
         """Create a calendar event. Returns (event_id, meet_link)."""
         try:
             service = self._get_service()
@@ -120,15 +120,15 @@ class GoogleCalendarClient(GoogleAuthClient):
             return event_id, meet_link
         except Exception as e:
             logger.error("Failed to create event in Google Calendar: %s", e)
-            return None, ""
+            raise
 
     def create_all_day_event(
         self,
         summary: str,
         event_date: date,
         calendar_id: str | None = None,
-    ) -> str | None:
-        """Create an all-day event. Returns Google Calendar event ID or None."""
+    ) -> str:
+        """Create an all-day event. Returns Google Calendar event ID."""
         try:
             service = self._get_service()
             cal_id = calendar_id or self._settings.calendar_id
@@ -146,7 +146,7 @@ class GoogleCalendarClient(GoogleAuthClient):
             return event_id
         except Exception as e:
             logger.error("Failed to create all-day event in Google Calendar: %s", e)
-            return None
+            raise
 
     def add_event_from_ics(
         self, ics_data: bytes, calendar_id: str | None = None
@@ -200,7 +200,7 @@ class GoogleCalendarClient(GoogleAuthClient):
             logger.error("Failed to get event %s: %s", event_id, e)
             return None
 
-    def delete_event(self, event_id: str, calendar_id: str | None = None) -> bool:
+    def delete_event(self, event_id: str, calendar_id: str | None = None) -> None:
         """Delete a calendar event by its Google Calendar event ID."""
         try:
             service = self._get_service()
@@ -209,10 +209,9 @@ class GoogleCalendarClient(GoogleAuthClient):
                 calendarId=cal_id, eventId=event_id
             ).execute()
             logger.info("Deleted event from Google Calendar, id=%s", event_id)
-            return True
         except Exception as e:
             logger.error("Failed to delete event by ID: %s", e)
-            return False
+            raise
 
     def update_event(
         self,
@@ -223,7 +222,7 @@ class GoogleCalendarClient(GoogleAuthClient):
         description: str | None = None,
         start_dt: datetime | None = None,
         end_dt: datetime | None = None,
-    ) -> dict | None:
+    ) -> dict:
         """Update an existing calendar event. Only provided fields are changed."""
         try:
             service = self._get_service()
@@ -240,6 +239,10 @@ class GoogleCalendarClient(GoogleAuthClient):
                 body["start"] = {"dateTime": start_dt.isoformat(), "timeZone": timezone}
             if end_dt is not None:
                 body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": timezone}
+            if not body:
+                return service.events().get(
+                    calendarId=cal_id, eventId=event_id
+                ).execute()
             result = service.events().patch(
                 calendarId=cal_id, eventId=event_id, body=body
             ).execute()
@@ -247,7 +250,7 @@ class GoogleCalendarClient(GoogleAuthClient):
             return result
         except Exception as e:
             logger.error("Failed to update event in Google Calendar: %s", e)
-            return None
+            raise
 
     def event_exists(
         self, uid: str | None, summary: str, start_time: datetime | None

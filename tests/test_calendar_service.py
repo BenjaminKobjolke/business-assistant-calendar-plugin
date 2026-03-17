@@ -142,7 +142,7 @@ class TestCalendarService:
 
     def test_create_event_failure(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
-        mock_client.create_event.return_value = (None, "")
+        mock_client.create_event.side_effect = Exception("HttpError 404 Not Found")
         service = self._make_service(calendar_settings, mock_client)
 
         result = service.create_event(
@@ -151,7 +151,8 @@ class TestCalendarService:
             "2026-03-15T15:00:00",
         )
 
-        assert "Failed to create event" in result
+        assert "Error creating event" in result
+        assert "HttpError 404 Not Found" in result
 
     def test_create_all_day_event(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
@@ -174,12 +175,13 @@ class TestCalendarService:
 
     def test_delete_event_failure(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
-        mock_client.delete_event.return_value = False
+        mock_client.delete_event.side_effect = Exception("Not found")
         service = self._make_service(calendar_settings, mock_client)
 
         result = service.delete_event("evt_123")
 
-        assert "Failed to delete" in result
+        assert "Error deleting event" in result
+        assert "Not found" in result
 
     def test_update_event_success(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
@@ -196,12 +198,26 @@ class TestCalendarService:
 
     def test_update_event_failure(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()
-        mock_client.update_event.return_value = None
+        mock_client.update_event.side_effect = Exception("API error")
         service = self._make_service(calendar_settings, mock_client)
 
         result = service.update_event("evt_123", summary="Updated")
 
-        assert "Failed to update" in result
+        assert "Error updating event" in result
+        assert "API error" in result
+
+    def test_update_event_no_fields(self, calendar_settings: CalendarSettings) -> None:
+        mock_client = MagicMock()
+        mock_client.update_event.return_value = {
+            "id": "evt_123",
+            "summary": "Original Meeting",
+        }
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.update_event("evt_123")
+
+        assert "Event updated" in result
+        assert "Original Meeting" in result
 
     def test_import_ics_event_success(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()

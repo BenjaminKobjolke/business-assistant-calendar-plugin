@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import date, datetime
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from business_assistant_calendar.calendar_client import GoogleCalendarClient
 from business_assistant_calendar.config import CalendarSettings
 from business_assistant_calendar.vevent_converter import vevent_to_google_event
@@ -100,10 +102,8 @@ class TestGoogleCalendarClient:
 
         start_dt = datetime(2026, 3, 15, 10, 0)
         end_dt = datetime(2026, 3, 15, 11, 0)
-        event_id, meet_link = client.create_event("Test Meeting", start_dt, end_dt)
-
-        assert event_id is None
-        assert meet_link == ""
+        with pytest.raises(Exception, match="API error"):
+            client.create_event("Test Meeting", start_dt, end_dt)
 
     def test_create_all_day_event(self, calendar_settings: CalendarSettings) -> None:
         mock_service = MagicMock()
@@ -119,14 +119,15 @@ class TestGoogleCalendarClient:
         mock_service.events().delete().execute.return_value = None
         client = self._make_client(calendar_settings, mock_service)
 
-        assert client.delete_event("evt_123") is True
+        client.delete_event("evt_123")  # should not raise
 
     def test_delete_event_failure(self, calendar_settings: CalendarSettings) -> None:
         mock_service = MagicMock()
         mock_service.events().delete().execute.side_effect = Exception("Not found")
         client = self._make_client(calendar_settings, mock_service)
 
-        assert client.delete_event("evt_123") is False
+        with pytest.raises(Exception, match="Not found"):
+            client.delete_event("evt_123")
 
     def test_event_exists_by_uid(self, calendar_settings: CalendarSettings) -> None:
         mock_service = MagicMock()
@@ -253,9 +254,22 @@ class TestGoogleCalendarClient:
         mock_service.events().patch().execute.side_effect = Exception("API error")
         client = self._make_client(calendar_settings, mock_service)
 
-        result = client.update_event("evt_123", summary="Updated")
+        with pytest.raises(Exception, match="API error"):
+            client.update_event("evt_123", summary="Updated")
 
-        assert result is None
+    def test_update_event_no_fields(self, calendar_settings: CalendarSettings) -> None:
+        mock_service = MagicMock()
+        mock_service.events().get().execute.return_value = {
+            "id": "evt_123",
+            "summary": "Original Meeting",
+        }
+        client = self._make_client(calendar_settings, mock_service)
+
+        result = client.update_event("evt_123")
+
+        assert result is not None
+        assert result["summary"] == "Original Meeting"
+        mock_service.events().patch.assert_not_called()
 
     def test_update_event_partial_fields(
         self, calendar_settings: CalendarSettings

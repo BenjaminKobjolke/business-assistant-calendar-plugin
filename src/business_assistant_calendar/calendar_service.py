@@ -83,16 +83,14 @@ class CalendarService:
             event_id, meet_link = self._client.create_event(
                 summary, start_dt, end_dt, calendar_id, add_google_meet
             )
-            if event_id:
-                lines = [
-                    f"Event created: '{summary}'",
-                    f"  From: {start_dt.strftime('%Y-%m-%d %H:%M')}",
-                    f"  To:   {end_dt.strftime('%Y-%m-%d %H:%M')}",
-                ]
-                if meet_link:
-                    lines.append(f"  Google Meet: {meet_link}")
-                return "\n".join(lines)
-            return "Failed to create event."
+            lines = [
+                f"Event created: '{summary}'",
+                f"  From: {start_dt.strftime('%Y-%m-%d %H:%M')}",
+                f"  To:   {end_dt.strftime('%Y-%m-%d %H:%M')}",
+            ]
+            if meet_link:
+                lines.append(f"  Google Meet: {meet_link}")
+            return "\n".join(lines)
         except Exception as e:
             return f"Error creating event: {e}"
 
@@ -105,24 +103,23 @@ class CalendarService:
         """Create an all-day event."""
         try:
             event_date = dateutil_parser.parse(date_str).date()
-            event_id = self._client.create_all_day_event(
+            self._client.create_all_day_event(
                 summary, event_date, calendar_id
             )
-            if event_id:
-                return (
-                    f"All-day event created: '{summary}'\n"
-                    f"  Date: {event_date.isoformat()}"
-                )
-            return "Failed to create all-day event."
+            return (
+                f"All-day event created: '{summary}'\n"
+                f"  Date: {event_date.isoformat()}"
+            )
         except Exception as e:
             return f"Error creating all-day event: {e}"
 
     def delete_event(self, event_id: str, calendar_id: str | None = None) -> str:
         """Delete an event by Google Calendar event ID."""
-        success = self._client.delete_event(event_id, calendar_id)
-        if success:
-            return "Event deleted successfully."
-        return "Failed to delete event."
+        try:
+            self._client.delete_event(event_id, calendar_id)
+        except Exception as e:
+            return f"Error deleting event: {e}"
+        return "Event deleted successfully."
 
     def update_event(
         self,
@@ -147,10 +144,8 @@ class CalendarService:
                 start_dt=start_dt,
                 end_dt=end_dt,
             )
-            if result:
-                updated_summary = result.get("summary", summary or event_id)
-                return f"Event updated: '{updated_summary}'"
-            return "Failed to update event."
+            updated_summary = result.get("summary", summary or event_id)
+            return f"Event updated: '{updated_summary}'"
         except Exception as e:
             return f"Error updating event: {e}"
 
