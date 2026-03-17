@@ -151,7 +151,7 @@ class TestCalendarService:
             "2026-03-15T15:00:00",
         )
 
-        assert "Error creating event" in result
+        assert "Error creating event in calendar 'primary'" in result
         assert "HttpError 404 Not Found" in result
 
     def test_create_all_day_event(self, calendar_settings: CalendarSettings) -> None:
@@ -180,7 +180,7 @@ class TestCalendarService:
 
         result = service.delete_event("evt_123")
 
-        assert "Error deleting event" in result
+        assert "Error deleting event in calendar 'primary'" in result
         assert "Not found" in result
 
     def test_update_event_success(self, calendar_settings: CalendarSettings) -> None:
@@ -203,7 +203,7 @@ class TestCalendarService:
 
         result = service.update_event("evt_123", summary="Updated")
 
-        assert "Error updating event" in result
+        assert "Error updating event in calendar 'primary'" in result
         assert "API error" in result
 
     def test_update_event_no_fields(self, calendar_settings: CalendarSettings) -> None:

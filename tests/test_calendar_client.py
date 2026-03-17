@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ssl
 from datetime import date, datetime
 from unittest.mock import MagicMock, patch
 
@@ -286,6 +287,41 @@ class TestGoogleCalendarClient:
 
         assert result is not None
         assert result["location"] == "New Location"
+
+    def test_list_calendars_retries_on_ssl_error(
+        self, calendar_settings: CalendarSettings,
+    ) -> None:
+        failing_service = MagicMock()
+        failing_service.calendarList().list().execute.side_effect = ssl.SSLError(
+            "WRONG_VERSION_NUMBER"
+        )
+        fresh_service = MagicMock()
+        fresh_service.calendarList().list().execute.return_value = {
+            "items": [{"id": "primary", "summary": "My Calendar"}],
+        }
+        client = GoogleCalendarClient(calendar_settings)
+        client._get_service = MagicMock(side_effect=[failing_service, fresh_service])
+
+        result = client.list_calendars()
+
+        assert len(result) == 1
+        assert result[0]["summary"] == "My Calendar"
+
+    def test_create_event_resets_service_on_ssl_error(
+        self, calendar_settings: CalendarSettings,
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().insert().execute.side_effect = ssl.SSLError(
+            "WRONG_VERSION_NUMBER"
+        )
+        client = self._make_client(calendar_settings, mock_service)
+
+        start_dt = datetime(2026, 3, 15, 10, 0)
+        end_dt = datetime(2026, 3, 15, 11, 0)
+        with pytest.raises(ssl.SSLError):
+            client.create_event("Test", start_dt, end_dt)
+
+        assert client._service is None  # reset for next call
 
 
 class TestVeventConversion:

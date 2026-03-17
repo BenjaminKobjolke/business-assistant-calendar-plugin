@@ -71,6 +71,11 @@ When the user asks to create or add an event/date, follow this workflow strictly
 all-day events)
 - NEVER call create_event without explicit user confirmation
 
+### Calendar selection for events
+When the user mentions a specific calendar by name (e.g., "XD Mitarbeiter", "Privat"), \
+first use list_calendars to resolve the calendar_id, then pass it to create_event. \
+Do NOT create events in the primary calendar when a specific target calendar was mentioned.
+
 ## All-day events — date range interpretation
 
 All-day events in list_events/search_events include `start_date` and `end_date` fields.

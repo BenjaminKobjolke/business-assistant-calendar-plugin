@@ -92,7 +92,8 @@ class CalendarService:
                 lines.append(f"  Google Meet: {meet_link}")
             return "\n".join(lines)
         except Exception as e:
-            return f"Error creating event: {e}"
+            cal_label = calendar_id or "primary"
+            return f"Error creating event in calendar '{cal_label}': {e}"
 
     def create_all_day_event(
         self,
@@ -111,14 +112,16 @@ class CalendarService:
                 f"  Date: {event_date.isoformat()}"
             )
         except Exception as e:
-            return f"Error creating all-day event: {e}"
+            cal_label = calendar_id or "primary"
+            return f"Error creating all-day event in calendar '{cal_label}': {e}"
 
     def delete_event(self, event_id: str, calendar_id: str | None = None) -> str:
         """Delete an event by Google Calendar event ID."""
         try:
             self._client.delete_event(event_id, calendar_id)
         except Exception as e:
-            return f"Error deleting event: {e}"
+            cal_label = calendar_id or "primary"
+            return f"Error deleting event in calendar '{cal_label}': {e}"
         return "Event deleted successfully."
 
     def update_event(
@@ -147,7 +150,8 @@ class CalendarService:
             updated_summary = result.get("summary", summary or event_id)
             return f"Event updated: '{updated_summary}'"
         except Exception as e:
-            return f"Error updating event: {e}"
+            cal_label = calendar_id or "primary"
+            return f"Error updating event in calendar '{cal_label}': {e}"
 
     def import_ics_event(
         self, ics_data: str, calendar_id: str | None = None

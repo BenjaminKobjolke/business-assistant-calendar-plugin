@@ -42,37 +42,52 @@ class GoogleCalendarClient(GoogleAuthClient):
 
     def list_calendars(self) -> list[dict]:
         """Fetch all calendars visible to the authenticated user."""
-        try:
-            service = self._get_service()
-            result = service.calendarList().list().execute()
-            return result.get("items", [])
-        except Exception as e:
-            logger.error("Failed to list calendars: %s", e)
-            return []
+        for attempt in range(2):
+            try:
+                service = self._get_service()
+                result = service.calendarList().list().execute()
+                return result.get("items", [])
+            except Exception as e:
+                if attempt == 0 and self._is_connection_error(e):
+                    logger.warning("Connection error listing calendars, retrying: %s", e)
+                    self._reset_service()
+                    continue
+                logger.error("Failed to list calendars: %s", e)
+                return []
+        return []  # unreachable
 
     def list_events_in_range(
         self, calendar_id: str, time_min: datetime, time_max: datetime
     ) -> list[dict]:
         """List events from a calendar within a time range."""
-        try:
-            service = self._get_service()
-            min_dt = time_min
-            max_dt = time_max
-            if min_dt.tzinfo is not None:
-                min_dt = min_dt.astimezone(UTC).replace(tzinfo=None)
-                max_dt = max_dt.astimezone(UTC).replace(tzinfo=None)
-            results = service.events().list(
-                calendarId=calendar_id,
-                timeMin=f"{min_dt.isoformat()}Z",
-                timeMax=f"{max_dt.isoformat()}Z",
-                singleEvents=True,
-                orderBy="startTime",
-                showDeleted=False,
-            ).execute()
-            return results.get("items", [])
-        except Exception as e:
-            logger.error("Error listing events in range for %s: %s", calendar_id, e)
-            return []
+        for attempt in range(2):
+            try:
+                service = self._get_service()
+                min_dt = time_min
+                max_dt = time_max
+                if min_dt.tzinfo is not None:
+                    min_dt = min_dt.astimezone(UTC).replace(tzinfo=None)
+                    max_dt = max_dt.astimezone(UTC).replace(tzinfo=None)
+                results = service.events().list(
+                    calendarId=calendar_id,
+                    timeMin=f"{min_dt.isoformat()}Z",
+                    timeMax=f"{max_dt.isoformat()}Z",
+                    singleEvents=True,
+                    orderBy="startTime",
+                    showDeleted=False,
+                ).execute()
+                return results.get("items", [])
+            except Exception as e:
+                if attempt == 0 and self._is_connection_error(e):
+                    logger.warning(
+                        "Connection error listing events for %s, retrying: %s",
+                        calendar_id, e,
+                    )
+                    self._reset_service()
+                    continue
+                logger.error("Error listing events in range for %s: %s", calendar_id, e)
+                return []
+        return []  # unreachable
 
     def create_event(
         self,
@@ -119,6 +134,8 @@ class GoogleCalendarClient(GoogleAuthClient):
             logger.info("Event created in Google Calendar, id=%s", event_id)
             return event_id, meet_link
         except Exception as e:
+            if self._is_connection_error(e):
+                self._reset_service()
             logger.error("Failed to create event in Google Calendar: %s", e)
             raise
 
@@ -145,6 +162,8 @@ class GoogleCalendarClient(GoogleAuthClient):
             logger.info("All-day event created in Google Calendar, id=%s", event_id)
             return event_id
         except Exception as e:
+            if self._is_connection_error(e):
+                self._reset_service()
             logger.error("Failed to create all-day event in Google Calendar: %s", e)
             raise
 
@@ -183,6 +202,8 @@ class GoogleCalendarClient(GoogleAuthClient):
             logger.warning("No VEVENT found in ICS data")
             return None
         except Exception as e:
+            if self._is_connection_error(e):
+                self._reset_service()
             logger.error("Failed to import event to Google Calendar: %s", e)
             return None
 
@@ -190,15 +211,21 @@ class GoogleCalendarClient(GoogleAuthClient):
         self, event_id: str, calendar_id: str | None = None
     ) -> dict | None:
         """Fetch a single event by ID. Returns event dict or None."""
-        try:
-            service = self._get_service()
-            cal_id = calendar_id or self._settings.calendar_id
-            return service.events().get(
-                calendarId=cal_id, eventId=event_id
-            ).execute()
-        except Exception as e:
-            logger.error("Failed to get event %s: %s", event_id, e)
-            return None
+        for attempt in range(2):
+            try:
+                service = self._get_service()
+                cal_id = calendar_id or self._settings.calendar_id
+                return service.events().get(
+                    calendarId=cal_id, eventId=event_id
+                ).execute()
+            except Exception as e:
+                if attempt == 0 and self._is_connection_error(e):
+                    logger.warning("Connection error getting event %s, retrying: %s", event_id, e)
+                    self._reset_service()
+                    continue
+                logger.error("Failed to get event %s: %s", event_id, e)
+                return None
+        return None  # unreachable
 
     def delete_event(self, event_id: str, calendar_id: str | None = None) -> None:
         """Delete a calendar event by its Google Calendar event ID."""
@@ -210,6 +237,8 @@ class GoogleCalendarClient(GoogleAuthClient):
             ).execute()
             logger.info("Deleted event from Google Calendar, id=%s", event_id)
         except Exception as e:
+            if self._is_connection_error(e):
+                self._reset_service()
             logger.error("Failed to delete event by ID: %s", e)
             raise
 
@@ -249,6 +278,8 @@ class GoogleCalendarClient(GoogleAuthClient):
             logger.info("Event updated in Google Calendar, id=%s", event_id)
             return result
         except Exception as e:
+            if self._is_connection_error(e):
+                self._reset_service()
             logger.error("Failed to update event in Google Calendar: %s", e)
             raise
 
@@ -270,41 +301,55 @@ class GoogleCalendarClient(GoogleAuthClient):
 
     def _find_event_by_uid(self, uid: str) -> dict | None:
         """Search for an event by its iCalendar UID."""
-        try:
-            service = self._get_service()
-            results = service.events().list(
-                calendarId=self._settings.calendar_id,
-                iCalUID=uid,
-                showDeleted=False,
-            ).execute()
-            items = results.get("items", [])
-            return items[0] if items else None
-        except Exception as e:
-            logger.error("Error searching for event by UID: %s", e)
-            return None
+        for attempt in range(2):
+            try:
+                service = self._get_service()
+                results = service.events().list(
+                    calendarId=self._settings.calendar_id,
+                    iCalUID=uid,
+                    showDeleted=False,
+                ).execute()
+                items = results.get("items", [])
+                return items[0] if items else None
+            except Exception as e:
+                if attempt == 0 and self._is_connection_error(e):
+                    logger.warning("Connection error finding event by UID, retrying: %s", e)
+                    self._reset_service()
+                    continue
+                logger.error("Error searching for event by UID: %s", e)
+                return None
+        return None  # unreachable
 
     def _find_event_by_summary_and_time(
         self, summary: str, start_time: datetime
     ) -> dict | None:
         """Fallback duplicate detection by summary and start time window."""
-        try:
-            service = self._get_service()
-            dt_min = start_time - timedelta(minutes=5)
-            dt_max = start_time + timedelta(minutes=5)
-            if dt_min.tzinfo is not None:
-                dt_min = dt_min.astimezone(UTC).replace(tzinfo=None)
-                dt_max = dt_max.astimezone(UTC).replace(tzinfo=None)
-            time_min = dt_min.isoformat() + "Z"
-            time_max = dt_max.isoformat() + "Z"
-            results = service.events().list(
-                calendarId=self._settings.calendar_id,
-                timeMin=time_min,
-                timeMax=time_max,
-                q=summary,
-                showDeleted=False,
-            ).execute()
-            items = results.get("items", [])
-            return items[0] if items else None
-        except Exception as e:
-            logger.error("Error searching for event by summary and time: %s", e)
-            return None
+        for attempt in range(2):
+            try:
+                service = self._get_service()
+                dt_min = start_time - timedelta(minutes=5)
+                dt_max = start_time + timedelta(minutes=5)
+                if dt_min.tzinfo is not None:
+                    dt_min = dt_min.astimezone(UTC).replace(tzinfo=None)
+                    dt_max = dt_max.astimezone(UTC).replace(tzinfo=None)
+                time_min = dt_min.isoformat() + "Z"
+                time_max = dt_max.isoformat() + "Z"
+                results = service.events().list(
+                    calendarId=self._settings.calendar_id,
+                    timeMin=time_min,
+                    timeMax=time_max,
+                    q=summary,
+                    showDeleted=False,
+                ).execute()
+                items = results.get("items", [])
+                return items[0] if items else None
+            except Exception as e:
+                if attempt == 0 and self._is_connection_error(e):
+                    logger.warning(
+                        "Connection error finding event by summary/time, retrying: %s", e,
+                    )
+                    self._reset_service()
+                    continue
+                logger.error("Error searching for event by summary and time: %s", e)
+                return None
+        return None  # unreachable
