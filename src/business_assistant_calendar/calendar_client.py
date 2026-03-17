@@ -186,6 +186,20 @@ class GoogleCalendarClient(GoogleAuthClient):
             logger.error("Failed to import event to Google Calendar: %s", e)
             return None
 
+    def get_event(
+        self, event_id: str, calendar_id: str | None = None
+    ) -> dict | None:
+        """Fetch a single event by ID. Returns event dict or None."""
+        try:
+            service = self._get_service()
+            cal_id = calendar_id or self._settings.calendar_id
+            return service.events().get(
+                calendarId=cal_id, eventId=event_id
+            ).execute()
+        except Exception as e:
+            logger.error("Failed to get event %s: %s", event_id, e)
+            return None
+
     def delete_event(self, event_id: str, calendar_id: str | None = None) -> bool:
         """Delete a calendar event by its Google Calendar event ID."""
         try:

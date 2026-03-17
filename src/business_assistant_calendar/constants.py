@@ -34,6 +34,7 @@ set all_day=True and provide summary and date_str (YYYY-MM-DD).
 - delete_event: Delete an event by Google Calendar event ID
 - update_event: Update an existing event's fields (summary, location, description, start, end)
 - import_ics_event: Import ICS calendar data to Google Calendar
+- get_event_details: Get full details for an event including attendees (event_id, calendar_id)
 - find_conflicts: Check for conflicting events across configured calendars
 - search_events: Search upcoming events by keyword (query, days_ahead, calendar_id)
 
@@ -103,7 +104,14 @@ Only provide the fields that need to change — omitted fields stay unchanged.
 
 list_events and search_events default to the primary calendar. When the user mentions \
 a specific calendar by name (e.g., "Privat", "Team"), first use list_calendars to find \
-the calendar_id, then pass it to list_events or search_events."""
+the calendar_id, then pass it to list_events or search_events.
+
+## Attendees / participants
+
+When the user asks about attendees, participants, or who is invited to a meeting:
+1. Use list_events or search_events to find the event
+2. Use get_event_details with the event_id to get attendees
+Do NOT mention attendees unless the user specifically asks about them."""
 
 SYSTEM_PROMPT_CALENDAR_SETUP = """Google Calendar integration is available \
 but not yet authenticated.

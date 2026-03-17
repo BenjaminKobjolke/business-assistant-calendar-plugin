@@ -294,6 +294,97 @@ class TestCalendarService:
 
         assert "No upcoming events matching" in result
 
+    def test_get_event_details_with_attendees(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        event = {
+            "id": "evt_abc123",
+            "summary": "Team Standup",
+            "start": {"dateTime": "2026-03-15T10:00:00+01:00"},
+            "end": {"dateTime": "2026-03-15T11:00:00+01:00"},
+            "location": "Conference Room A",
+            "description": "Daily standup meeting",
+            "organizer": {"displayName": "Alice Smith", "email": "alice@example.com"},
+            "attendees": [
+                {
+                    "email": "alice@example.com",
+                    "displayName": "Alice Smith",
+                    "responseStatus": "accepted",
+                },
+                {
+                    "email": "bob@example.com",
+                    "displayName": "Bob Jones",
+                    "responseStatus": "needsAction",
+                },
+            ],
+        }
+        mock_client = MagicMock()
+        mock_client.get_event.return_value = event
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.get_event_details("evt_abc123")
+
+        data = json.loads(result)
+        evt = data["event"]
+        assert evt["summary"] == "Team Standup"
+        assert evt["description"] == "Daily standup meeting"
+        assert evt["organizer"] == "Alice Smith"
+        assert len(evt["attendees"]) == 2
+        assert evt["attendees"][0]["name"] == "Alice Smith"
+        assert evt["attendees"][0]["status"] == "accepted"
+        assert evt["attendees"][1]["name"] == "Bob Jones"
+        assert evt["attendees"][1]["status"] == "needsAction"
+
+    def test_get_event_details_no_attendees(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        event = {
+            "id": "evt_solo",
+            "summary": "Solo Work",
+            "start": {"dateTime": "2026-03-15T14:00:00+01:00"},
+            "end": {"dateTime": "2026-03-15T15:00:00+01:00"},
+        }
+        mock_client = MagicMock()
+        mock_client.get_event.return_value = event
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.get_event_details("evt_solo")
+
+        data = json.loads(result)
+        assert data["event"]["attendees"] == []
+
+    def test_get_event_details_attendee_fallback_to_email(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        event = {
+            "id": "evt_noemail",
+            "summary": "External Meeting",
+            "start": {"dateTime": "2026-03-15T16:00:00+01:00"},
+            "end": {"dateTime": "2026-03-15T17:00:00+01:00"},
+            "attendees": [
+                {"email": "external@partner.com", "responseStatus": "tentative"},
+            ],
+        }
+        mock_client = MagicMock()
+        mock_client.get_event.return_value = event
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.get_event_details("evt_noemail")
+
+        data = json.loads(result)
+        assert data["event"]["attendees"][0]["name"] == "external@partner.com"
+
+    def test_get_event_details_not_found(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.get_event.return_value = None
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.get_event_details("evt_missing")
+
+        assert "Event not found" in result
+
     def test_all_day_event_includes_date_range(
         self, calendar_settings: CalendarSettings
     ) -> None:

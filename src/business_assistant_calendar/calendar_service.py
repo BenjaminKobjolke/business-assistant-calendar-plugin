@@ -207,6 +207,43 @@ class CalendarService:
         except Exception as e:
             return f"Error checking conflicts: {e}"
 
+    def get_event_details(
+        self, event_id: str, calendar_id: str | None = None
+    ) -> str:
+        """Get full details for a single event including attendees."""
+        try:
+            cal_id = calendar_id or self._settings.calendar_id
+            event = self._client.get_event(event_id, cal_id)
+            if event is None:
+                return f"Event not found: {event_id}"
+
+            result = _format_event_dict(event)
+
+            description = event.get("description", "")
+            if description:
+                result["description"] = description
+
+            organizer = event.get("organizer", {})
+            if organizer:
+                result["organizer"] = organizer.get(
+                    "displayName", organizer.get("email", "")
+                )
+
+            attendees_raw = event.get("attendees", [])
+            attendees = []
+            for att in attendees_raw:
+                name = att.get("displayName", att.get("email", ""))
+                status = att.get("responseStatus", "")
+                entry: dict[str, str] = {"name": name}
+                if status:
+                    entry["status"] = status
+                attendees.append(entry)
+            result["attendees"] = attendees
+
+            return json.dumps({"event": result})
+        except Exception as e:
+            return f"Error getting event details: {e}"
+
     def search_events(
         self, query: str, days_ahead: int = 30, calendar_id: str | None = None,
     ) -> str:

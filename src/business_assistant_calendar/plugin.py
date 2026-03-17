@@ -115,6 +115,15 @@ def _find_conflicts(ctx: RunContext[Deps], start: str, end: str) -> str:
     return _get_service(ctx).find_conflicts(start, end)
 
 
+def _get_event_details(
+    ctx: RunContext[Deps], event_id: str, calendar_id: str | None = None
+) -> str:
+    """Get full details for a calendar event including attendees/participants.
+    Use list_events or search_events first to find the event_id.
+    """
+    return _get_service(ctx).get_event_details(event_id, calendar_id)
+
+
 def _search_events(
     ctx: RunContext[Deps],
     query: str,
@@ -189,6 +198,7 @@ def register(registry: PluginRegistry) -> None:
         Tool(_delete_event, name="delete_event"),
         Tool(_update_event, name="update_event"),
         Tool(_import_ics_event, name="import_ics_event"),
+        Tool(_get_event_details, name="get_event_details"),
         Tool(_find_conflicts, name="find_conflicts"),
         Tool(_search_events, name="search_events"),
     ]

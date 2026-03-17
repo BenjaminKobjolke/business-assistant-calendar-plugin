@@ -211,6 +211,27 @@ class TestGoogleCalendarClient:
         assert len(result) == 2
         assert result[0]["summary"] == "Meeting 1"
 
+    def test_get_event_success(self, calendar_settings: CalendarSettings) -> None:
+        mock_service = MagicMock()
+        mock_service.events().get().execute.return_value = {
+            "id": "evt_123",
+            "summary": "Team Meeting",
+            "attendees": [{"email": "alice@example.com", "displayName": "Alice"}],
+        }
+        client = self._make_client(calendar_settings, mock_service)
+
+        result = client.get_event("evt_123")
+
+        assert result is not None
+        assert result["summary"] == "Team Meeting"
+
+    def test_get_event_failure(self, calendar_settings: CalendarSettings) -> None:
+        mock_service = MagicMock()
+        mock_service.events().get().execute.side_effect = Exception("Not found")
+        client = self._make_client(calendar_settings, mock_service)
+
+        assert client.get_event("evt_missing") is None
+
     def test_update_event_success(self, calendar_settings: CalendarSettings) -> None:
         mock_service = MagicMock()
         mock_service.events().patch().execute.return_value = {
