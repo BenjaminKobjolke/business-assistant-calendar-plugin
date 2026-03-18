@@ -11,6 +11,7 @@ from tests.conftest import (
     SAMPLE_CALENDAR_LIST,
     SAMPLE_GOOGLE_EVENT,
     SAMPLE_GOOGLE_EVENT_ALL_DAY,
+    SAMPLE_GOOGLE_EVENT_WITH_REMINDERS,
     SAMPLE_ICS,
 )
 
@@ -218,6 +219,94 @@ class TestCalendarService:
 
         assert "Event updated" in result
         assert "Original Meeting" in result
+
+    def test_create_event_with_reminders(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.create_event.return_value = ("evt_rem", "")
+        service = self._make_service(calendar_settings, mock_client)
+
+        reminders = [{"method": "popup", "minutes": 30}]
+        result = service.create_event(
+            "Reminder Meeting",
+            "2026-03-15T10:00:00",
+            "2026-03-15T11:00:00",
+            reminders=reminders,
+        )
+
+        assert "Event created" in result
+        assert "Reminder: popup 30 min before" in result
+        mock_client.create_event.assert_called_once()
+        call_kwargs = mock_client.create_event.call_args
+        assert call_kwargs[0][5] == reminders
+
+    def test_create_all_day_event_with_reminders(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.create_all_day_event.return_value = "evt_allday_rem"
+        service = self._make_service(calendar_settings, mock_client)
+
+        reminders = [{"method": "email", "minutes": 10080}]
+        result = service.create_all_day_event(
+            "Birthday", "2026-05-24", reminders=reminders,
+        )
+
+        assert "All-day event created" in result
+        mock_client.create_all_day_event.assert_called_once()
+        call_args = mock_client.create_all_day_event.call_args
+        assert call_args[0][2] is None  # calendar_id
+        assert call_args[0][3] == reminders
+
+    def test_update_event_with_reminders(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.update_event.return_value = {
+            "id": "evt_123",
+            "summary": "Meeting",
+        }
+        service = self._make_service(calendar_settings, mock_client)
+
+        reminders = [{"method": "popup", "minutes": 10080}]
+        result = service.update_event("evt_123", reminders=reminders)
+
+        assert "Event updated" in result
+        mock_client.update_event.assert_called_once()
+        call_kwargs = mock_client.update_event.call_args
+        assert call_kwargs[1]["reminders"] == reminders
+
+    def test_get_event_details_with_reminders(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.get_event.return_value = SAMPLE_GOOGLE_EVENT_WITH_REMINDERS
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.get_event_details("evt_reminder")
+
+        data = json.loads(result)
+        evt = data["event"]
+        assert "reminders" in evt
+        assert len(evt["reminders"]) == 1
+        assert evt["reminders"][0] == {"method": "popup", "minutes": 30}
+
+    def test_format_event_dict_with_reminders(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.list_events_in_range.return_value = [
+            SAMPLE_GOOGLE_EVENT_WITH_REMINDERS,
+        ]
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.list_events("2026-03-15")
+
+        data = json.loads(result)
+        evt = data["events"][0]
+        assert "reminders" in evt
+        assert evt["reminders"][0] == {"method": "popup", "minutes": 30}
 
     def test_import_ics_event_success(self, calendar_settings: CalendarSettings) -> None:
         mock_client = MagicMock()

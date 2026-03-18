@@ -30,9 +30,10 @@ SYSTEM_PROMPT_CALENDAR = """You have access to Google Calendar tools:
 - list_events: List events for today or a date range (date_str, days, calendar_id)
 - create_event: Create a calendar event. For timed events: provide summary, start, \
 end (ISO datetime). Set add_google_meet=True for a Meet link. For all-day events: \
-set all_day=True and provide summary and date_str (YYYY-MM-DD).
+set all_day=True and provide summary and date_str (YYYY-MM-DD). Use reminders param for alarms.
 - delete_event: Delete an event by Google Calendar event ID
-- update_event: Update an existing event's fields (summary, location, description, start, end)
+- update_event: Update an existing event's fields (summary, location, description, \
+start, end). Use reminders param to add/change alarms.
 - import_ics_event: Import ICS calendar data to Google Calendar
 - get_event_details: Get full details for an event including attendees (event_id, calendar_id)
 - find_conflicts: Check for conflicting events across configured calendars
@@ -104,6 +105,32 @@ and confirm the correct event with the user before deleting.
 Use update_event to modify existing event fields (location, description, summary, time).
 First find the event via list_events or search_events, then update it by event_id.
 Only provide the fields that need to change — omitted fields stay unchanged.
+
+## Reminders / Alarms
+
+Both create_event and update_event accept an optional `reminders` parameter.
+Format: a list of dicts, each with "method" ("popup" or "email") and "minutes" (integer, 0-40320).
+
+Common minute values:
+- 5 minutes = 5
+- 15 minutes = 15
+- 30 minutes = 30
+- 1 hour = 60
+- 1 day = 1440
+- 2 days = 2880
+- 1 week = 10080
+- 2 weeks = 20160
+- 4 weeks = 40320
+
+Example: User says "remind me 1 week before" →
+reminders=[{"method": "popup", "minutes": 10080}]
+
+Example: User says "email reminder 1 day before and popup 30 min before" →
+reminders=[{"method": "email", "minutes": 1440}, {"method": "popup", "minutes": 30}]
+
+When the user says "remind me" about an existing event, use search_events or list_events \
+to find the event_id, then call update_event with the reminders parameter.
+When creating a new event with a reminder, include reminders in the create_event call.
 
 ## Searching / listing in specific calendars
 

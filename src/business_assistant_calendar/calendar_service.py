@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import date, datetime, timedelta
+from typing import Any
 
 from dateutil import parser as dateutil_parser
 
@@ -74,6 +75,7 @@ class CalendarService:
         end: str,
         calendar_id: str | None = None,
         add_google_meet: bool = False,
+        reminders: list[dict[str, int | str]] | None = None,
     ) -> str:
         """Create a timed event. Parses flexible datetime strings."""
         try:
@@ -81,7 +83,8 @@ class CalendarService:
             end_dt = dateutil_parser.parse(end)
 
             event_id, meet_link = self._client.create_event(
-                summary, start_dt, end_dt, calendar_id, add_google_meet
+                summary, start_dt, end_dt, calendar_id, add_google_meet,
+                reminders,
             )
             lines = [
                 f"Event created: '{summary}'",
@@ -90,6 +93,12 @@ class CalendarService:
             ]
             if meet_link:
                 lines.append(f"  Google Meet: {meet_link}")
+            if reminders:
+                for r in reminders:
+                    lines.append(
+                        f"  Reminder: {r.get('method', 'popup')} "
+                        f"{r.get('minutes', 0)} min before"
+                    )
             return "\n".join(lines)
         except Exception as e:
             cal_label = calendar_id or "primary"
@@ -100,12 +109,13 @@ class CalendarService:
         summary: str,
         date_str: str,
         calendar_id: str | None = None,
+        reminders: list[dict[str, int | str]] | None = None,
     ) -> str:
         """Create an all-day event."""
         try:
             event_date = dateutil_parser.parse(date_str).date()
             self._client.create_all_day_event(
-                summary, event_date, calendar_id
+                summary, event_date, calendar_id, reminders,
             )
             return (
                 f"All-day event created: '{summary}'\n"
@@ -133,6 +143,7 @@ class CalendarService:
         description: str | None = None,
         start: str | None = None,
         end: str | None = None,
+        reminders: list[dict[str, int | str]] | None = None,
     ) -> str:
         """Update an existing event. Only provided fields are changed."""
         try:
@@ -146,6 +157,7 @@ class CalendarService:
                 description=description,
                 start_dt=start_dt,
                 end_dt=end_dt,
+                reminders=reminders,
             )
             updated_summary = result.get("summary", summary or event_id)
             return f"Event updated: '{updated_summary}'"
@@ -239,6 +251,14 @@ class CalendarService:
                 attendees.append(entry)
             result["attendees"] = attendees
 
+            reminders_data = event.get("reminders", {})
+            overrides = reminders_data.get("overrides", [])
+            if overrides:
+                result["reminders"] = [
+                    {"method": r.get("method", "popup"), "minutes": r.get("minutes", 0)}
+                    for r in overrides
+                ]
+
             return json.dumps({"event": result})
         except Exception as e:
             return f"Error getting event details: {e}"
@@ -302,7 +322,7 @@ def _format_event_dict(event: dict) -> dict:
     except Exception:
         end_display = end_str
 
-    result: dict[str, str] = {
+    result: dict[str, Any] = {
         "_id": event.get("id", ""),
         "time": f"{start_display} - {end_display}" if end_display else start_display,
         "summary": summary,
@@ -316,5 +336,13 @@ def _format_event_dict(event: dict) -> dict:
     location = event.get("location", "")
     if location:
         result["location"] = location
+
+    reminders = event.get("reminders", {})
+    overrides = reminders.get("overrides", [])
+    if overrides:
+        result["reminders"] = [
+            {"method": r.get("method", "popup"), "minutes": r.get("minutes", 0)}
+            for r in overrides
+        ]
 
     return result

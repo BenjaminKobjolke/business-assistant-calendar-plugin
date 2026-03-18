@@ -60,6 +60,7 @@ def _create_event(
     add_google_meet: bool = False,
     all_day: bool = False,
     date_str: str = "",
+    reminders: list[dict[str, int | str]] | None = None,
 ) -> str:
     """Create a calendar event.
 
@@ -67,13 +68,15 @@ def _create_event(
     end as ISO datetime strings. Set add_google_meet=True for Meet link.
     For all-day events (all_day=True): provide summary and date_str
     (YYYY-MM-DD).
+    Optionally provide reminders as a list of dicts with 'method' (popup/email)
+    and 'minutes' (0-40320). Example: [{"method": "popup", "minutes": 30}]
     """
     if all_day:
         return _get_service(ctx).create_all_day_event(
-            summary, date_str, calendar_id,
+            summary, date_str, calendar_id, reminders,
         )
     return _get_service(ctx).create_event(
-        summary, start, end, calendar_id, add_google_meet,
+        summary, start, end, calendar_id, add_google_meet, reminders,
     )
 
 
@@ -93,13 +96,16 @@ def _update_event(
     description: str | None = None,
     start: str | None = None,
     end: str | None = None,
+    reminders: list[dict[str, int | str]] | None = None,
 ) -> str:
     """Update an existing event's fields. Only provided fields are changed.
     Use list_events or search_events first to find the event_id.
+    Optionally provide reminders as a list of dicts with 'method' and 'minutes'.
     """
     return _get_service(ctx).update_event(
         event_id, calendar_id=calendar_id, summary=summary,
         location=location, description=description, start=start, end=end,
+        reminders=reminders,
     )
 
 

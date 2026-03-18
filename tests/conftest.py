@@ -36,6 +36,17 @@ SAMPLE_GOOGLE_EVENT_ALL_DAY = {
     "end": {"date": "2026-03-21"},
 }
 
+SAMPLE_GOOGLE_EVENT_WITH_REMINDERS = {
+    "id": "evt_reminder",
+    "summary": "Meeting with Reminder",
+    "start": {"dateTime": "2026-03-15T10:00:00+01:00"},
+    "end": {"dateTime": "2026-03-15T11:00:00+01:00"},
+    "reminders": {
+        "useDefault": False,
+        "overrides": [{"method": "popup", "minutes": 30}],
+    },
+}
+
 SAMPLE_CALENDAR_LIST = [
     {"id": "primary", "summary": "My Calendar", "primary": True},
     {"id": "team@group.calendar.google.com", "summary": "Team Calendar"},

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import ssl
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -323,6 +323,84 @@ class TestGoogleCalendarClient:
 
         assert client._service is None  # reset for next call
 
+    def test_create_event_with_reminders(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().insert().execute.return_value = {"id": "evt_rem"}
+        client = self._make_client(calendar_settings, mock_service)
+
+        start_dt = datetime(2026, 3, 15, 10, 0)
+        end_dt = datetime(2026, 3, 15, 11, 0)
+        reminders = [{"method": "popup", "minutes": 30}]
+        event_id, _ = client.create_event(
+            "Reminder Meeting", start_dt, end_dt, reminders=reminders
+        )
+
+        assert event_id == "evt_rem"
+        call_kwargs = mock_service.events().insert.call_args
+        body = call_kwargs[1]["body"] if "body" in call_kwargs[1] else call_kwargs[0][0]
+        assert body["reminders"] == {
+            "useDefault": False,
+            "overrides": [{"method": "popup", "minutes": 30}],
+        }
+
+    def test_create_event_without_reminders_no_key(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().insert().execute.return_value = {"id": "evt_noremind"}
+        client = self._make_client(calendar_settings, mock_service)
+
+        start_dt = datetime(2026, 3, 15, 10, 0)
+        end_dt = datetime(2026, 3, 15, 11, 0)
+        client.create_event("No Reminder", start_dt, end_dt)
+
+        call_kwargs = mock_service.events().insert.call_args
+        body = call_kwargs[1]["body"] if "body" in call_kwargs[1] else call_kwargs[0][0]
+        assert "reminders" not in body
+
+    def test_create_all_day_event_with_reminders(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().insert().execute.return_value = {"id": "evt_allday_rem"}
+        client = self._make_client(calendar_settings, mock_service)
+
+        reminders = [{"method": "email", "minutes": 1440}]
+        result = client.create_all_day_event(
+            "Birthday", date(2026, 5, 24), reminders=reminders
+        )
+
+        assert result == "evt_allday_rem"
+        call_kwargs = mock_service.events().insert.call_args
+        body = call_kwargs[1]["body"] if "body" in call_kwargs[1] else call_kwargs[0][0]
+        assert body["reminders"] == {
+            "useDefault": False,
+            "overrides": [{"method": "email", "minutes": 1440}],
+        }
+
+    def test_update_event_with_reminders(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().patch().execute.return_value = {
+            "id": "evt_123",
+            "summary": "Meeting",
+        }
+        client = self._make_client(calendar_settings, mock_service)
+
+        reminders = [{"method": "popup", "minutes": 10080}]
+        result = client.update_event("evt_123", reminders=reminders)
+
+        assert result is not None
+        call_kwargs = mock_service.events().patch.call_args
+        body = call_kwargs[1]["body"] if "body" in call_kwargs[1] else call_kwargs[0][0]
+        assert body["reminders"] == {
+            "useDefault": False,
+            "overrides": [{"method": "popup", "minutes": 10080}],
+        }
+
 
 class TestVeventConversion:
     def test_vevent_to_google_event_basic(self) -> None:
@@ -392,3 +470,66 @@ class TestVeventConversion:
 
         assert "date" in result["start"]
         assert "date" in result["end"]
+
+    def test_vevent_to_google_event_with_valarm(self) -> None:
+        mock_alarm = MagicMock()
+        mock_alarm.name = "VALARM"
+        mock_trigger = MagicMock()
+        mock_trigger.dt = -timedelta(minutes=30)
+        mock_alarm.get.side_effect = lambda key, default=None: {
+            "action": "DISPLAY",
+            "trigger": mock_trigger,
+        }.get(key, default)
+
+        mock_vevent = MagicMock()
+        mock_vevent.get.side_effect = lambda key: {
+            "uid": "uid-alarm",
+            "summary": "Alarm Event",
+            "location": None,
+            "description": None,
+            "dtstart": None,
+            "dtend": None,
+            "organizer": None,
+            "rrule": None,
+        }.get(key)
+        mock_vevent.subcomponents = [mock_alarm]
+
+        result = vevent_to_google_event(mock_vevent)
+
+        assert "reminders" in result
+        assert result["reminders"]["useDefault"] is False
+        assert len(result["reminders"]["overrides"]) == 1
+        assert result["reminders"]["overrides"][0] == {
+            "method": "popup",
+            "minutes": 30,
+        }
+
+    def test_vevent_to_google_event_with_email_valarm(self) -> None:
+        mock_alarm = MagicMock()
+        mock_alarm.name = "VALARM"
+        mock_trigger = MagicMock()
+        mock_trigger.dt = -timedelta(days=1)
+        mock_alarm.get.side_effect = lambda key, default=None: {
+            "action": "EMAIL",
+            "trigger": mock_trigger,
+        }.get(key, default)
+
+        mock_vevent = MagicMock()
+        mock_vevent.get.side_effect = lambda key: {
+            "uid": "uid-email-alarm",
+            "summary": "Email Alarm Event",
+            "location": None,
+            "description": None,
+            "dtstart": None,
+            "dtend": None,
+            "organizer": None,
+            "rrule": None,
+        }.get(key)
+        mock_vevent.subcomponents = [mock_alarm]
+
+        result = vevent_to_google_event(mock_vevent)
+
+        assert result["reminders"]["overrides"][0] == {
+            "method": "email",
+            "minutes": 1440,
+        }

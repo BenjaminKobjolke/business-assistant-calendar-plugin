@@ -96,6 +96,7 @@ class GoogleCalendarClient(GoogleAuthClient):
         end_dt: datetime,
         calendar_id: str | None = None,
         add_google_meet: bool = False,
+        reminders: list[dict[str, int | str]] | None = None,
     ) -> tuple[str, str]:
         """Create a calendar event. Returns (event_id, meet_link)."""
         try:
@@ -107,6 +108,12 @@ class GoogleCalendarClient(GoogleAuthClient):
                 "start": {"dateTime": start_dt.isoformat(), "timeZone": timezone},
                 "end": {"dateTime": end_dt.isoformat(), "timeZone": timezone},
             }
+
+            if reminders is not None:
+                event_body["reminders"] = {
+                    "useDefault": False,
+                    "overrides": reminders,
+                }
 
             conference_version = 0
             if add_google_meet:
@@ -144,17 +151,23 @@ class GoogleCalendarClient(GoogleAuthClient):
         summary: str,
         event_date: date,
         calendar_id: str | None = None,
+        reminders: list[dict[str, int | str]] | None = None,
     ) -> str:
         """Create an all-day event. Returns Google Calendar event ID."""
         try:
             service = self._get_service()
             cal_id = calendar_id or self._settings.calendar_id
             next_day = event_date + timedelta(days=1)
-            event_body = {
+            event_body: dict = {
                 "summary": summary,
                 "start": {"date": event_date.isoformat()},
                 "end": {"date": next_day.isoformat()},
             }
+            if reminders is not None:
+                event_body["reminders"] = {
+                    "useDefault": False,
+                    "overrides": reminders,
+                }
             result = service.events().insert(
                 calendarId=cal_id, body=event_body, sendUpdates="none"
             ).execute()
@@ -251,6 +264,7 @@ class GoogleCalendarClient(GoogleAuthClient):
         description: str | None = None,
         start_dt: datetime | None = None,
         end_dt: datetime | None = None,
+        reminders: list[dict[str, int | str]] | None = None,
     ) -> dict:
         """Update an existing calendar event. Only provided fields are changed."""
         try:
@@ -268,6 +282,11 @@ class GoogleCalendarClient(GoogleAuthClient):
                 body["start"] = {"dateTime": start_dt.isoformat(), "timeZone": timezone}
             if end_dt is not None:
                 body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": timezone}
+            if reminders is not None:
+                body["reminders"] = {
+                    "useDefault": False,
+                    "overrides": reminders,
+                }
             if not body:
                 return service.events().get(
                     calendarId=cal_id, eventId=event_id

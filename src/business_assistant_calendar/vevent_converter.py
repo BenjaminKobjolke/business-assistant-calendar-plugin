@@ -57,4 +57,20 @@ def vevent_to_google_event(vevent) -> dict:
     if rrule:
         event["recurrence"] = [f"RRULE:{rrule.to_ical().decode()}"]
 
+    # Extract VALARM components for Google Calendar reminders
+    alarms: list[dict[str, int | str]] = []
+    for subcomponent in getattr(vevent, "subcomponents", []):
+        if getattr(subcomponent, "name", "") == "VALARM":
+            action = str(subcomponent.get("action", "DISPLAY")).upper()
+            trigger = subcomponent.get("trigger")
+            if trigger and hasattr(trigger, "dt"):
+                td = trigger.dt
+                if hasattr(td, "total_seconds"):
+                    total_minutes = min(abs(int(td.total_seconds())) // 60, 40320)
+                    method = "email" if action == "EMAIL" else "popup"
+                    alarms.append({"method": method, "minutes": total_minutes})
+
+    if alarms:
+        event["reminders"] = {"useDefault": False, "overrides": alarms}
+
     return event
