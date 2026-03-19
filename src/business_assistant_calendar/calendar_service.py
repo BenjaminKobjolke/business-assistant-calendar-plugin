@@ -304,10 +304,12 @@ def _format_event_dict(event: dict) -> dict:
 
     # Format datetime strings for readability
     is_all_day = "T" not in start_str and start_str != ""
+    event_date = ""
     try:
         if "T" in start_str:
             start_dt = dateutil_parser.parse(start_str)
             start_display = start_dt.strftime("%H:%M")
+            event_date = start_dt.strftime("%Y-%m-%d")
         else:
             start_display = "all-day"
     except Exception:
@@ -327,6 +329,10 @@ def _format_event_dict(event: dict) -> dict:
         "time": f"{start_display} - {end_display}" if end_display else start_display,
         "summary": summary,
     }
+
+    # Include date for timed events so the AI knows which day the event falls on
+    if not is_all_day and event_date:
+        result["date"] = event_date
 
     # Include explicit date range for all-day events so the AI knows the span
     if is_all_day:

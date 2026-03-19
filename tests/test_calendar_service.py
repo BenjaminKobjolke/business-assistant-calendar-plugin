@@ -64,10 +64,12 @@ class TestCalendarService:
         assert "Team Standup" in summaries
         assert "Company Holiday" in summaries
         assert data["events"][0]["_id"] == "evt_abc123"
-        # Timed event should not have start_date/end_date
+        # Timed event should have date but not start_date/end_date
+        assert data["events"][0]["date"] == "2026-03-15"
         assert "start_date" not in data["events"][0]
-        # All-day event should include explicit date range
+        # All-day event should include explicit date range but not "date"
         all_day = data["events"][1]
+        assert "date" not in all_day
         assert all_day["start_date"] == "2026-03-20"
         assert all_day["end_date"] == "2026-03-21"
 
