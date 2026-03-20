@@ -88,6 +88,7 @@ class CalendarService:
             )
             lines = [
                 f"Event created: '{summary}'",
+                f"  _id: {event_id}",
                 f"  From: {start_dt.strftime('%Y-%m-%d %H:%M')}",
                 f"  To:   {end_dt.strftime('%Y-%m-%d %H:%M')}",
             ]

@@ -120,6 +120,7 @@ class TestCalendarService:
 
         assert "Event created" in result
         assert "Sprint Planning" in result
+        assert "_id: evt_new123" in result
         assert "Google Meet" not in result
 
     def test_create_event_with_google_meet(
@@ -140,6 +141,7 @@ class TestCalendarService:
         )
 
         assert "Event created" in result
+        assert "_id: evt_meet" in result
         assert "Google Meet" in result
         assert "https://meet.google.com/abc-defg-hij" in result
 
@@ -238,6 +240,7 @@ class TestCalendarService:
         )
 
         assert "Event created" in result
+        assert "_id: evt_rem" in result
         assert "Reminder: popup 30 min before" in result
         mock_client.create_event.assert_called_once()
         call_kwargs = mock_client.create_event.call_args
