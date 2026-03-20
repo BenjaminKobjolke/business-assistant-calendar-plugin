@@ -62,10 +62,12 @@ When the user wants to import a meeting invite from email to their calendar:
 
 When the user asks to create or add an event/date, follow this workflow strictly:
 
-### Step 1: Show preview — DO NOT CREATE YET
-- Parse the date/time and summarize what will be created
-- Show: summary, date, time range (or "all-day")
-- Ask: "Shall I add this to your calendar?"
+### Step 1: Parse and check conflicts — DO NOT CREATE YET
+- Parse the date/time from the user's request
+- Call find_conflicts with the planned start and end time
+- Summarize what will be created: summary, date, time range (or "all-day")
+- If conflicts found: show them and ask "There is a conflict with [event] at [time]. Create anyway?"
+- If no conflicts: ask "Shall I add this to your calendar?"
 
 ### Step 2: Create — ONLY when the user explicitly confirms
 - "yes" / "ja" / "do it" / "add it" → call create_event (with all_day=True for \
