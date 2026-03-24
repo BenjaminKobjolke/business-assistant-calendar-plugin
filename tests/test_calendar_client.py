@@ -323,6 +323,57 @@ class TestGoogleCalendarClient:
 
         assert client._service is None  # reset for next call
 
+    def test_create_event_with_description(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().insert().execute.return_value = {"id": "evt_desc"}
+        client = self._make_client(calendar_settings, mock_service)
+
+        start_dt = datetime(2026, 3, 15, 10, 0)
+        end_dt = datetime(2026, 3, 15, 11, 0)
+        event_id, _ = client.create_event(
+            "Meeting with Link", start_dt, end_dt,
+            description="https://teams.microsoft.com/l/meetup-join/123",
+        )
+
+        assert event_id == "evt_desc"
+        call_kwargs = mock_service.events().insert.call_args
+        body = call_kwargs[1]["body"] if "body" in call_kwargs[1] else call_kwargs[0][0]
+        assert body["description"] == "https://teams.microsoft.com/l/meetup-join/123"
+
+    def test_create_event_without_description_no_key(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().insert().execute.return_value = {"id": "evt_nodesc"}
+        client = self._make_client(calendar_settings, mock_service)
+
+        start_dt = datetime(2026, 3, 15, 10, 0)
+        end_dt = datetime(2026, 3, 15, 11, 0)
+        client.create_event("No Description", start_dt, end_dt)
+
+        call_kwargs = mock_service.events().insert.call_args
+        body = call_kwargs[1]["body"] if "body" in call_kwargs[1] else call_kwargs[0][0]
+        assert "description" not in body
+
+    def test_create_all_day_event_with_description(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_service = MagicMock()
+        mock_service.events().insert().execute.return_value = {"id": "evt_allday_desc"}
+        client = self._make_client(calendar_settings, mock_service)
+
+        result = client.create_all_day_event(
+            "Conference", date(2026, 3, 20),
+            description="Annual tech conference",
+        )
+
+        assert result == "evt_allday_desc"
+        call_kwargs = mock_service.events().insert.call_args
+        body = call_kwargs[1]["body"] if "body" in call_kwargs[1] else call_kwargs[0][0]
+        assert body["description"] == "Annual tech conference"
+
     def test_create_event_with_reminders(
         self, calendar_settings: CalendarSettings
     ) -> None:

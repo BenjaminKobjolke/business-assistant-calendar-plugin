@@ -76,6 +76,7 @@ class CalendarService:
         calendar_id: str | None = None,
         add_google_meet: bool = False,
         reminders: list[dict[str, int | str]] | None = None,
+        description: str | None = None,
     ) -> str:
         """Create a timed event. Parses flexible datetime strings."""
         try:
@@ -84,7 +85,7 @@ class CalendarService:
 
             event_id, meet_link = self._client.create_event(
                 summary, start_dt, end_dt, calendar_id, add_google_meet,
-                reminders,
+                reminders, description,
             )
             lines = [
                 f"Event created: '{summary}'",
@@ -111,12 +112,13 @@ class CalendarService:
         date_str: str,
         calendar_id: str | None = None,
         reminders: list[dict[str, int | str]] | None = None,
+        description: str | None = None,
     ) -> str:
         """Create an all-day event."""
         try:
             event_date = dateutil_parser.parse(date_str).date()
             self._client.create_all_day_event(
-                summary, event_date, calendar_id, reminders,
+                summary, event_date, calendar_id, reminders, description,
             )
             return (
                 f"All-day event created: '{summary}'\n"

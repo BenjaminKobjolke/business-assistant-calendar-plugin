@@ -97,6 +97,7 @@ class GoogleCalendarClient(GoogleAuthClient):
         calendar_id: str | None = None,
         add_google_meet: bool = False,
         reminders: list[dict[str, int | str]] | None = None,
+        description: str | None = None,
     ) -> tuple[str, str]:
         """Create a calendar event. Returns (event_id, meet_link)."""
         try:
@@ -108,6 +109,9 @@ class GoogleCalendarClient(GoogleAuthClient):
                 "start": {"dateTime": start_dt.isoformat(), "timeZone": timezone},
                 "end": {"dateTime": end_dt.isoformat(), "timeZone": timezone},
             }
+
+            if description is not None:
+                event_body["description"] = description
 
             if reminders is not None:
                 event_body["reminders"] = {
@@ -152,6 +156,7 @@ class GoogleCalendarClient(GoogleAuthClient):
         event_date: date,
         calendar_id: str | None = None,
         reminders: list[dict[str, int | str]] | None = None,
+        description: str | None = None,
     ) -> str:
         """Create an all-day event. Returns Google Calendar event ID."""
         try:
@@ -163,6 +168,8 @@ class GoogleCalendarClient(GoogleAuthClient):
                 "start": {"date": event_date.isoformat()},
                 "end": {"date": next_day.isoformat()},
             }
+            if description is not None:
+                event_body["description"] = description
             if reminders is not None:
                 event_body["reminders"] = {
                     "useDefault": False,

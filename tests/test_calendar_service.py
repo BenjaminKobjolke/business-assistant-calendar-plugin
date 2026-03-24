@@ -224,6 +224,43 @@ class TestCalendarService:
         assert "Event updated" in result
         assert "Original Meeting" in result
 
+    def test_create_event_with_description(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.create_event.return_value = ("evt_desc", "")
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.create_event(
+            "XR Hub Meeting",
+            "2026-03-15T14:00:00",
+            "2026-03-15T15:00:00",
+            description="https://teams.microsoft.com/l/meetup-join/123",
+        )
+
+        assert "Event created" in result
+        assert "XR Hub Meeting" in result
+        mock_client.create_event.assert_called_once()
+        call_args = mock_client.create_event.call_args
+        assert call_args[0][6] == "https://teams.microsoft.com/l/meetup-join/123"
+
+    def test_create_all_day_event_with_description(
+        self, calendar_settings: CalendarSettings
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.create_all_day_event.return_value = "evt_allday_desc"
+        service = self._make_service(calendar_settings, mock_client)
+
+        result = service.create_all_day_event(
+            "Conference", "2026-03-20",
+            description="Annual tech conference",
+        )
+
+        assert "All-day event created" in result
+        mock_client.create_all_day_event.assert_called_once()
+        call_args = mock_client.create_all_day_event.call_args
+        assert call_args[0][4] == "Annual tech conference"
+
     def test_create_event_with_reminders(
         self, calendar_settings: CalendarSettings
     ) -> None:
